@@ -2,6 +2,13 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.2.2] – 2026-10-29
+
+### Opravené
+- Home Price Card: v zozname kariet sa nekonečne točilo koliesko a v konzole bola chyba
+  „Custom element not found: home-price-card“. Karta sa načítala skôr, než HA pripravil register prvkov,
+  teraz sa zaregistruje až po štarte aplikácie.
+
 ## [0.2.1] – 2026-10-29
 
 ### Opravené

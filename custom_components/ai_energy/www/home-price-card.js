@@ -15,7 +15,7 @@
  */
 (function () {
   'use strict';
-  const VERSION = '2.6.1';
+  const VERSION = '2.6.2';
   // cena: neutrálna škála (nekoliduje s farbami akcií) – lacné svetlé, bežné sivé, nad prahom predaja zelená (ako predaj)
 const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' };
   const ACT = {
@@ -277,8 +277,22 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
     }
   }
 
-  if (!customElements.get('home-price-card-editor')) customElements.define('home-price-card-editor', HomePriceCardEditor);
-  if (!customElements.get('home-price-card')) customElements.define('home-price-card', HomePriceCard);
+  // Integrácia načítava kartu cez extra_module_url. Niektoré verzie HA ho spustia skôr, než frontend
+  // nainštaluje "scoped custom element registry" – prvky definované vtedy HA nenájde (nekonečné koliesko,
+  // "Custom element not found"). Preto definujeme až keď je aplikácia (<home-assistant>) pripravená.
+  const register = () => {
+    const reg = window.customElements;
+    if (!reg.get('home-price-card-editor')) reg.define('home-price-card-editor', HomePriceCardEditor);
+    if (!reg.get('home-price-card')) reg.define('home-price-card', HomePriceCard);
+  };
+  if (window.__haScopedRegistryReady || customElements.get('home-assistant') || !document.querySelector('home-assistant')) {
+    register();
+  } else {
+    let done = false;
+    const once = () => { if (!done) { done = true; register(); } };
+    customElements.whenDefined('home-assistant').then(() => setTimeout(once, 0));
+    setTimeout(once, 10000);
+  }
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'home-price-card'))
     window.customCards.push({ type: 'home-price-card', name: 'Home Price Card', description: 'Spotové ceny elektriny a plán batérie ako časová os (AI Energy).', preview: false, documentationURL: 'https://github.com/Igypop78/ai-energy' });
