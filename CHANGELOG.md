@@ -2,6 +2,11 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.2.1] – 2026-10-29
+
+### Opravené
+- Home Price Card: v zozname kariet sa namiesto nekonečne točiaceho náhľadu zobrazí dlaždica s popisom.
+
 ## [0.2.0] – 2026-10-29
 
 ### Pridané

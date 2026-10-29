@@ -15,7 +15,7 @@
  */
 (function () {
   'use strict';
-  const VERSION = '2.6.0';
+  const VERSION = '2.6.1';
   // cena: neutrálna škála (nekoliduje s farbami akcií) – lacné svetlé, bežné sivé, nad prahom predaja zelená (ako predaj)
 const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' };
   const ACT = {
@@ -281,6 +281,6 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
   if (!customElements.get('home-price-card')) customElements.define('home-price-card', HomePriceCard);
   window.customCards = window.customCards || [];
   if (!window.customCards.some((c) => c.type === 'home-price-card'))
-    window.customCards.push({ type: 'home-price-card', name: 'Home Price Card', description: 'Spotové ceny elektriny a plán batérie ako časová os.', preview: true });
+    window.customCards.push({ type: 'home-price-card', name: 'Home Price Card', description: 'Spotové ceny elektriny a plán batérie ako časová os (AI Energy).', preview: false, documentationURL: 'https://github.com/Igypop78/ai-energy' });
   console.info('%c HOME-PRICE-CARD %c ' + VERSION + ' ', 'background:#0a84ff;color:#fff;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();
