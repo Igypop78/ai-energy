@@ -61,7 +61,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     manifest = await hass.async_add_executor_job((base / "manifest.json").read_text)
     version = json.loads(manifest)["version"]
     await hass.http.async_register_static_paths([StaticPathConfig(CARD_URL, str(card), True)])
-    add_extra_js_url(hass, f"{CARD_URL}?v={version}")
+    if "frontend" in hass.config.components:
+        add_extra_js_url(hass, f"{CARD_URL}?v={version}")
     return True
 
 

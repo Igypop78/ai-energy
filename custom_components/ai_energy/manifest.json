@@ -1,12 +1,15 @@
 {
   "domain": "ai_energy",
   "name": "AI Energy",
+  "after_dependencies": [
+    "frontend",
+    "recorder"
+  ],
   "codeowners": [
     "@Igypop78"
   ],
   "config_flow": true,
   "dependencies": [
-    "frontend",
     "http"
   ],
   "documentation": "https://github.com/Igypop78/ai-energy",
