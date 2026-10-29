@@ -7,4 +7,4 @@
 - Čistá logika bez závislosti na HA patrí do samostatných modulov (napr. `prices.py`), aby sa dala testovať
   pytestom bez inštalácie Home Assistant (`tests/`).
 - Minimálna verzia HA: 2025.1 (`hacs.json`).
-- Pri zmene správania zvýš `version` v `manifest.json`.
+- Pri zmene správania zvýš `version` v `manifest.json` a doplň záznam do `CHANGELOG.md`.
