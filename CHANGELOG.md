@@ -2,6 +2,30 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.4.0] – 2026-10-29
+
+### Pridané
+- **Nový sprievodca** krok po kroku s vysvetlením pri každom poli: Vitaj (čo treba mať, čo mám doma) → Ceny → Nákup →
+  Predaj → Batéria a spotreba → FVE → Nabíjačka auta → Istič a elektromer → Hotovo (zhrnutie).
+  Kroky pre FVE a auto sa zobrazia len tomu, kto ich má. Konfigurovať = ponuka s rovnakými časťami.
+- **Predaj elektriny**: spotová cena mínus poplatok, **pevná výkupná cena** (voliteľne pásmo s inou cenou) alebo **nepredávam**.
+  Plánovač počíta s cenou predaja po 15-min úsekoch.
+- **Jedna tarifa** (bez NT) – plán ide po dňoch, bez nabíjania zo siete.
+- **Spotreba domu v kWh/deň** + voliteľný senzor (energia alebo výkon) – priemer z histórie za 7 dní.
+- **Istič v ampéroch** (+ rezerva %, predvolene 10 %); režimy nabíjačky typu select sa vyberajú zo zoznamu.
+- Ceny v sprievodcovi v **€/kWh**.
+- Nová ikona integrácie (spotové ceny).
+- Testy sprievodcu a načítania integrácie v Home Assistant (GitHub Actions).
+
+### Zmenené
+- „Spotreba domu teraz“ zrušená – používa sa senzor spotreby domu (ak je výkonový) alebo elektromer.
+- Pokročilé polia (min/max prúd, rezerva ističa, spoločný limit, záporný odber) sú v zbalenej sekcii *Pokročilé*.
+
+### Poznámky
+- Pri prechode z 0.3 zostávajú nastavenia; staré „Spotreba domu (kW)“ a „Limit odberu (kW)“ platia, kým ich neprepíšeš
+  v Konfigurovať (Batéria a spotreba / Istič a elektromer).
+- Pri zmene spôsobu predaja skontroluj **Min. predajnú cenu** – drží si poslednú nastavenú hodnotu.
+
 ## [0.3.1] – 2026-10-29
 
 ### Pridané

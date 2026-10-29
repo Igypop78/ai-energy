@@ -80,22 +80,26 @@ Karta sa nainštaluje **spolu s integráciou**. Na dashboarde: **Pridať kartu �
 
 ## Nastavenie
 
-Sprievodca má štyri kroky:
+Sprievodca ide krok po kroku a pri každom poli vysvetľuje, čo tam patrí. Kroky pre FVE a auto uvidíš len vtedy,
+ak ich máš.
 
-1. **Spotové ceny** – senzor s dnešnými cenami (povinný) a so zajtrajšími (voliteľný).
-   Integrácia OKTE sa nájde automaticky.
-2. **Tarifa nákupu** – časy nízkej tarify a ceny vrátane distribúcie.
-   Predvolené hodnoty = ZSE DD3 s dodatkom pre elektromobily:
-   - NT: `23:45-05:45, 13:45-15:45`
-   - NT 120 €/MWh, VT 210 €/MWh
-   - poplatok za predaj 15 €/MWh (výkupca strháva zo spotu)
+1. **Vitaj** – čo integrácia potrebuje a čo máš doma (FVE, nabíjačka auta).
+2. **Spotové ceny** – senzor s cenami na dnes (povinný) a na zajtra. OKTE sa nájde automaticky.
+3. **Nákup elektriny** – časy nízkej tarify a ceny v **€/kWh** vrátane distribúcie a DPH.
+   Predvyplnené ZSE DD3: NT `23:45-05:45, 13:45-15:45`, NT 0,120 €/kWh, VT 0,210 €/kWh.
+   Pri jednej tarife nechaj časy prázdne.
+4. **Predaj elektriny** – *spotová cena mínus poplatok* (napr. 0,015 €/kWh), *pevná výkupná cena*
+   (voliteľne s pásmom s inou cenou) alebo *nepredávam*.
+5. **Batéria a spotreba domu** – SOC, kapacita, výkon nabíjania a predaja, spotreba domu v **kWh/deň**
+   a voliteľne senzor spotreby (priemer z posledných 7 dní).
+6. **Fotovoltika** – predpoveď Solcast a voliteľne okamžitý výkon FVE.
+7. **Nabíjačka auta** – zapnutie nabíjania, prúd, fázy, stav auta. Pri výbere režimu (SmartEVSE) ďalší krok
+   ponúkne jeho režimy na výber (Normal / Off).
+8. **Istič a elektromer** – hlavný istič v A (napr. 25 pre 3×25 A), meranie odberu zo siete;
+   v *Pokročilých* rezerva ističa a spoločný limit batérie a auta.
+9. **Hotovo** – zhrnutie a čo ďalej.
 
-3. **Batéria a FVE** – senzor SOC, kapacita, výkon nabíjania zo siete a predaja,
-   voliteľne predpoveď FVE (Solcast) a merania výkonu FVE a spotreby.
-4. **Nabíjanie auta** – voliteľné. Prepínač nabíjačky, prúd, fázy, min/max prúd, stav auta,
-   meranie odberu zo siete (odporúčané – prebytky FVE a istič) a limity ističa / spoločného kábla.
-
-Všetko sa dá neskôr zmeniť: **Nastavenia → Zariadenia a služby → AI Energy → Konfigurovať** (ceny a tarifa / batéria a FVE / nabíjanie auta).
+Všetko sa dá neskôr zmeniť: **Nastavenia → Zariadenia a služby → AI Energy → Konfigurovať** – ponuka s rovnakými časťami.
 
 ## Plán vývoja
 
