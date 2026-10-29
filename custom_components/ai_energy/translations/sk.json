@@ -1,0 +1,75 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Spotové ceny",
+        "description": "Vyber senzor(y) so spotovými cenami po 15 minútach (napr. integrácia OKTE). Dnešné ceny sú povinné, zajtrajšie voliteľné.",
+        "data": {
+          "price_today": "Ceny dnes",
+          "price_tomorrow": "Ceny zajtra"
+        },
+        "data_description": {
+          "price_today": "Senzor, ktorý má zoznam cien v atribútoch (napr. period_data).",
+          "price_tomorrow": "Zvyčajne sa zverejňujú okolo 14:00 na nasledujúci deň."
+        }
+      },
+      "tarifa": {
+        "title": "Tarifa nákupu",
+        "description": "Časy nízkej tarify (NT) a ceny nákupu vrátane distribúcie. Predvolené hodnoty zodpovedajú ZSE DD3 pre elektromobily.",
+        "data": {
+          "nt_intervals": "Časy nízkej tarify",
+          "price_nt": "Cena v NT",
+          "price_vt": "Cena vo VT",
+          "sell_fee": "Poplatok za predaj"
+        },
+        "data_description": {
+          "nt_intervals": "Formát HH:MM-HH:MM oddelené čiarkou, napr. 23:45-05:45, 13:45-15:45",
+          "sell_fee": "Koľko ti výkupca strhne zo spotovej ceny pri predaji."
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Entita neexistuje.",
+      "no_prices": "V atribútoch senzora sa nenašli ceny.",
+      "invalid_intervals": "Neplatné časy – použi HH:MM-HH:MM oddelené čiarkou."
+    },
+    "abort": {
+      "already_configured": "AI Energy je už nastavená."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Nastavenia AI Energy",
+        "data": {
+          "price_today": "Ceny dnes",
+          "price_tomorrow": "Ceny zajtra",
+          "nt_intervals": "Časy nízkej tarify",
+          "price_nt": "Cena v NT",
+          "price_vt": "Cena vo VT",
+          "sell_fee": "Poplatok za predaj"
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Entita neexistuje.",
+      "no_prices": "V atribútoch senzora sa nenašli ceny.",
+      "invalid_intervals": "Neplatné časy – použi HH:MM-HH:MM oddelené čiarkou."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "ceny": {
+        "name": "Ceny"
+      },
+      "aktualna_cena": {
+        "name": "Aktuálna cena"
+      }
+    },
+    "binary_sensor": {
+      "nizka_tarifa": {
+        "name": "Nízka tarifa"
+      }
+    }
+  }
+}

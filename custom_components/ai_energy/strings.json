@@ -1,0 +1,75 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Spot prices",
+        "description": "Choose the sensor(s) with spot prices in 15-minute intervals (e.g. OKTE integration). Today is required, tomorrow is optional.",
+        "data": {
+          "price_today": "Prices today",
+          "price_tomorrow": "Prices tomorrow"
+        },
+        "data_description": {
+          "price_today": "Sensor whose attributes contain the price list (e.g. period_data).",
+          "price_tomorrow": "Usually published around 14:00 for the next day."
+        }
+      },
+      "tarifa": {
+        "title": "Purchase tariff",
+        "description": "Low tariff (NT) hours and purchase prices including distribution. Defaults match ZSE DD3 for EV owners.",
+        "data": {
+          "nt_intervals": "Low tariff hours",
+          "price_nt": "Low tariff price",
+          "price_vt": "High tariff price",
+          "sell_fee": "Selling fee"
+        },
+        "data_description": {
+          "nt_intervals": "Format HH:MM-HH:MM separated by comma, e.g. 23:45-05:45, 13:45-15:45",
+          "sell_fee": "Amount your buyer deducts from the spot price when you sell."
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Entity not found.",
+      "no_prices": "No prices found in this sensor's attributes.",
+      "invalid_intervals": "Invalid hours – use HH:MM-HH:MM separated by comma."
+    },
+    "abort": {
+      "already_configured": "AI Energy is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "AI Energy settings",
+        "data": {
+          "price_today": "Prices today",
+          "price_tomorrow": "Prices tomorrow",
+          "nt_intervals": "Low tariff hours",
+          "price_nt": "Low tariff price",
+          "price_vt": "High tariff price",
+          "sell_fee": "Selling fee"
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Entity not found.",
+      "no_prices": "No prices found in this sensor's attributes.",
+      "invalid_intervals": "Invalid hours – use HH:MM-HH:MM separated by comma."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "ceny": {
+        "name": "Prices"
+      },
+      "aktualna_cena": {
+        "name": "Current price"
+      }
+    },
+    "binary_sensor": {
+      "nizka_tarifa": {
+        "name": "Low tariff"
+      }
+    }
+  }
+}

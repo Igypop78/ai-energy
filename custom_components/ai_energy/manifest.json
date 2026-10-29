@@ -1,0 +1,13 @@
+{
+  "domain": "ai_energy",
+  "name": "AI Energy",
+  "codeowners": ["@Igypop78"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/Igypop78/ai-energy",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/Igypop78/ai-energy/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
