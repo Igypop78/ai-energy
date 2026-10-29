@@ -26,6 +26,30 @@
           "nt_intervals": "Formát HH:MM-HH:MM oddelené čiarkou, napr. 23:45-05:45, 13:45-15:45",
           "sell_fee": "Koľko ti výkupca strhne zo spotovej ceny pri predaji."
         }
+      },
+      "bateria": {
+        "title": "Batéria a FVE",
+        "description": "Zadaj batériu. Predpoveď FVE je voliteľná – bez nej plán počíta len so sieťou.",
+        "data": {
+          "soc_entity": "SOC batérie",
+          "capacity_kwh": "Kapacita batérie",
+          "charge_kw": "Nabíjanie zo siete (výkon)",
+          "export_kw": "Predaj z batérie (výkon)",
+          "house_kw": "Priemerná spotreba domu",
+          "pv_forecast_today": "Predpoveď FVE dnes",
+          "pv_forecast_tomorrow": "Predpoveď FVE zajtra",
+          "pv_power_entity": "Výkon FVE (meranie)",
+          "house_power_entity": "Spotreba domu (meranie)"
+        },
+        "data_description": {
+          "soc_entity": "Senzor so stavom nabitia batérie v %.",
+          "capacity_kwh": "Využiteľná kapacita.",
+          "charge_kw": "Akým výkonom menič nabíja batériu zo siete.",
+          "export_kw": "Akým výkonom menič predáva z batérie do siete.",
+          "house_kw": "Používa sa v pláne na odhad spotreby.",
+          "pv_forecast_today": "Voliteľné – napr. Solcast (atribút detailedForecast).",
+          "pv_power_entity": "Voliteľné – spresní rozhodovanie o predaji len z FVE."
+        }
       }
     },
     "error": {
@@ -47,7 +71,16 @@
           "nt_intervals": "Časy nízkej tarify",
           "price_nt": "Cena v NT",
           "price_vt": "Cena vo VT",
-          "sell_fee": "Poplatok za predaj"
+          "sell_fee": "Poplatok za predaj",
+          "soc_entity": "SOC batérie",
+          "capacity_kwh": "Kapacita batérie",
+          "charge_kw": "Nabíjanie zo siete (výkon)",
+          "export_kw": "Predaj z batérie (výkon)",
+          "house_kw": "Priemerná spotreba domu",
+          "pv_forecast_today": "Predpoveď FVE dnes",
+          "pv_forecast_tomorrow": "Predpoveď FVE zajtra",
+          "pv_power_entity": "Výkon FVE (meranie)",
+          "house_power_entity": "Spotreba domu (meranie)"
         }
       }
     },
@@ -64,11 +97,51 @@
       },
       "aktualna_cena": {
         "name": "Aktuálna cena"
+      },
+      "plan": {
+        "name": "Plán"
+      },
+      "odporucany_rezim": {
+        "name": "Odporúčaný režim",
+        "state": {
+          "predaj": "Predaj z batérie",
+          "predaj_fve": "Predaj len z FVE",
+          "nabijanie": "Nabíjanie zo siete",
+          "siet": "Dom zo siete",
+          "bez_pretokov": "Bez pretokov",
+          "normal": "Bežná prevádzka"
+        }
+      },
+      "dovod": {
+        "name": "Dôvod"
+      },
+      "predajna_hranica": {
+        "name": "Predajná hranica"
+      },
+      "ciel_nt": {
+        "name": "Cieľ nabitia v NT"
       }
     },
     "binary_sensor": {
       "nizka_tarifa": {
         "name": "Nízka tarifa"
+      }
+    },
+    "number": {
+      "prah_predaja": {
+        "name": "Min. predajná cena"
+      },
+      "min_soc": {
+        "name": "Min SOC"
+      },
+      "max_soc": {
+        "name": "Max SOC nabíjania zo siete"
+      },
+      "nabijaci_vykon": {
+        "name": "Nabíjací výkon zo siete"
+      },
+      "korekcia_fve": {
+        "name": "Korekcia predpovede FVE"
       }
     }
   }

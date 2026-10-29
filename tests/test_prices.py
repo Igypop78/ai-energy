@@ -68,3 +68,9 @@ def test_intervals_zse():
 def test_intervals_invalid(bad):
     with pytest.raises(ValueError):
         prices.parse_intervals(bad)
+
+
+def test_parse_solcast():
+    attrs = {"detailedForecast": [{"period_start": "2026-10-19T00:00:00+02:00", "pv_estimate": 1.5, "pv_estimate10": 1.0}]}
+    assert prices.parse_pv(attrs) == [(T0, 1.5)]
+    assert prices.parse_pv({}) == []

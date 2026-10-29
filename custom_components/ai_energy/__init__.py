@@ -2,22 +2,88 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+import json
+from pathlib import Path
+
+from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.typing import ConfigType
 
-from .const import PLATFORMS
+from .const import (
+    CARD_URL,
+    CONF_PRICE_NT,
+    CONF_SELL_FEE,
+    DEFAULT_MAX_SOC,
+    DEFAULT_MIN_SOC,
+    DEFAULT_PRICE_NT,
+    DEFAULT_PV_CORRECTION,
+    DEFAULT_SELL_FEE,
+    DOMAIN,
+    PLATFORMS,
+    SET_CHARGE_KW,
+    SET_MAX_SOC,
+    SET_MIN_SOC,
+    SET_PV_CORRECTION,
+    SET_THRESHOLD,
+    CONF_CHARGE_KW,
+    DEFAULT_CHARGE_KW,
+    default_threshold,
+)
 from .coordinator import PriceCoordinator
+from .plan_coordinator import PlanCoordinator
 
-type AiEnergyConfigEntry = ConfigEntry[PriceCoordinator]
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+@dataclass
+class AiEnergyData:
+    prices: PriceCoordinator
+    plan: PlanCoordinator
+    settings: dict[str, float] = field(default_factory=dict)
+
+
+type AiEnergyConfigEntry = ConfigEntry[AiEnergyData]
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Zaregistruje Home Price Card – na dashboard ju stačí pridať, netreba kopírovať súbory."""
+    base = Path(__file__).parent
+    card = base / "www" / "home-price-card.js"
+    manifest = await hass.async_add_executor_job((base / "manifest.json").read_text)
+    version = json.loads(manifest)["version"]
+    await hass.http.async_register_static_paths([StaticPathConfig(CARD_URL, str(card), True)])
+    add_extra_js_url(hass, f"{CARD_URL}?v={version}")
+    return True
+
+
+def initial_settings(entry: ConfigEntry) -> dict[str, float]:
+    cfg = {**entry.data, **entry.options}
+    return {
+        SET_THRESHOLD: float(default_threshold(float(cfg.get(CONF_PRICE_NT, DEFAULT_PRICE_NT)), float(cfg.get(CONF_SELL_FEE, DEFAULT_SELL_FEE)))),
+        SET_MIN_SOC: DEFAULT_MIN_SOC,
+        SET_MAX_SOC: DEFAULT_MAX_SOC,
+        SET_CHARGE_KW: float(cfg.get(CONF_CHARGE_KW, DEFAULT_CHARGE_KW)),
+        SET_PV_CORRECTION: DEFAULT_PV_CORRECTION,
+    }
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: AiEnergyConfigEntry) -> bool:
     """Nastavenie z UI."""
-    coordinator = PriceCoordinator(hass, entry)
-    await coordinator.async_load()
-    await coordinator.async_config_entry_first_refresh()
-    coordinator.async_track_sources()
-    entry.runtime_data = coordinator
+    prices = PriceCoordinator(hass, entry)
+    await prices.async_load()
+    await prices.async_config_entry_first_refresh()
+    prices.async_track_sources()
+
+    settings = initial_settings(entry)
+    plan = PlanCoordinator(hass, entry, prices, settings)
+    await plan.async_config_entry_first_refresh()
+    plan.async_track_inputs()
+    entry.runtime_data = AiEnergyData(prices=prices, plan=plan, settings=settings)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_reload))

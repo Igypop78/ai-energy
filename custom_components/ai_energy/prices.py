@@ -115,3 +115,27 @@ def is_in_intervals(minute_of_day: int, intervals: Iterable[tuple[int, int]]) ->
         elif minute_of_day >= start or minute_of_day < end:
             return True
     return False
+
+
+PV_LIST_KEYS = ("detailedForecast", "detailed_forecast", "forecast")
+PV_TIME_KEYS = ("period_start", "start", "datetime", "time")
+PV_VALUE_KEYS = ("pv_estimate", "power", "value")
+
+
+def parse_pv(attributes: Mapping[str, Any] | None) -> list[tuple[int, float]]:
+    """Predpoveď FVE z atribútov (Solcast: detailedForecast [{period_start, pv_estimate}] v kW)."""
+    if not attributes:
+        return []
+    out: dict[int, float] = {}
+    for key in PV_LIST_KEYS:
+        items = attributes.get(key)
+        if not isinstance(items, (list, tuple)):
+            continue
+        for item in items:
+            if not isinstance(item, Mapping):
+                continue
+            ts = next((_to_ts(item.get(k)) for k in PV_TIME_KEYS if item.get(k) is not None), None)
+            kw = next((_to_price(item.get(k)) for k in PV_VALUE_KEYS if item.get(k) is not None), None)
+            if ts is not None and kw is not None:
+                out[ts] = kw
+    return sorted(out.items())

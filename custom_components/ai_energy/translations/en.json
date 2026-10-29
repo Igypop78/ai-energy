@@ -26,6 +26,30 @@
           "nt_intervals": "Format HH:MM-HH:MM separated by comma, e.g. 23:45-05:45, 13:45-15:45",
           "sell_fee": "Amount your buyer deducts from the spot price when you sell."
         }
+      },
+      "bateria": {
+        "title": "Battery and PV",
+        "description": "Describe your battery. PV forecast is optional – without it the plan only uses the grid.",
+        "data": {
+          "soc_entity": "Battery SOC",
+          "capacity_kwh": "Battery capacity",
+          "charge_kw": "Grid charging power",
+          "export_kw": "Battery export power",
+          "house_kw": "Average house consumption",
+          "pv_forecast_today": "PV forecast today",
+          "pv_forecast_tomorrow": "PV forecast tomorrow",
+          "pv_power_entity": "PV power (measured)",
+          "house_power_entity": "House consumption (measured)"
+        },
+        "data_description": {
+          "soc_entity": "Sensor with battery state of charge in %.",
+          "capacity_kwh": "Usable capacity.",
+          "charge_kw": "Power at which the inverter charges the battery from the grid.",
+          "export_kw": "Power at which the inverter exports from the battery.",
+          "house_kw": "Used in the plan to estimate consumption.",
+          "pv_forecast_today": "Optional – e.g. Solcast (detailedForecast attribute).",
+          "pv_power_entity": "Optional – refines the PV-only selling decision."
+        }
       }
     },
     "error": {
@@ -47,7 +71,16 @@
           "nt_intervals": "Low tariff hours",
           "price_nt": "Low tariff price",
           "price_vt": "High tariff price",
-          "sell_fee": "Selling fee"
+          "sell_fee": "Selling fee",
+          "soc_entity": "Battery SOC",
+          "capacity_kwh": "Battery capacity",
+          "charge_kw": "Grid charging power",
+          "export_kw": "Battery export power",
+          "house_kw": "Average house consumption",
+          "pv_forecast_today": "PV forecast today",
+          "pv_forecast_tomorrow": "PV forecast tomorrow",
+          "pv_power_entity": "PV power (measured)",
+          "house_power_entity": "House consumption (measured)"
         }
       }
     },
@@ -64,11 +97,51 @@
       },
       "aktualna_cena": {
         "name": "Current price"
+      },
+      "plan": {
+        "name": "Plan"
+      },
+      "odporucany_rezim": {
+        "name": "Recommended mode",
+        "state": {
+          "predaj": "Sell from battery",
+          "predaj_fve": "Sell PV only",
+          "nabijanie": "Charge from grid",
+          "siet": "House from grid",
+          "bez_pretokov": "No export",
+          "normal": "Normal"
+        }
+      },
+      "dovod": {
+        "name": "Reason"
+      },
+      "predajna_hranica": {
+        "name": "Selling threshold now"
+      },
+      "ciel_nt": {
+        "name": "Low-tariff charge target"
       }
     },
     "binary_sensor": {
       "nizka_tarifa": {
         "name": "Low tariff"
+      }
+    },
+    "number": {
+      "prah_predaja": {
+        "name": "Minimum selling price"
+      },
+      "min_soc": {
+        "name": "Minimum SOC"
+      },
+      "max_soc": {
+        "name": "Max SOC from grid"
+      },
+      "nabijaci_vykon": {
+        "name": "Grid charging power"
+      },
+      "korekcia_fve": {
+        "name": "PV forecast correction"
       }
     }
   }
