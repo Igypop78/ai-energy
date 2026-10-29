@@ -14,7 +14,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from . import AiEnergyConfigEntry
-from .const import DOMAIN, SLOT_SECONDS
+from .const import CONF_SOC_ENTITY, DOMAIN, SLOT_SECONDS
 from .coordinator import PriceCoordinator
 from .entity import device_info
 from .plan_coordinator import PlanCoordinator
@@ -151,6 +151,8 @@ class PlanSensor(_Base):
             "prah": cfg.threshold,
             "min_soc": cfg.min_soc,
             "max_soc": cfg.max_soc,
+            "soc": d.get("soc"),
+            "soc_entity": self.coordinator.cfg.get(CONF_SOC_ENTITY),
         }
 
 

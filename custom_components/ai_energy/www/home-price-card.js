@@ -15,7 +15,7 @@
  */
 (function () {
   'use strict';
-  const VERSION = '2.6.2';
+  const VERSION = '2.6.3';
   // cena: neutrálna škála (nekoliduje s farbami akcií) – lacné svetlé, bežné sivé, nad prahom predaja zelená (ako predaj)
 const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' };
   const ACT = {
@@ -92,9 +92,12 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
       const st = hass ? hass.states : {}, f = (re) => Object.keys(st).find((id) => re.test(id));
       const c = { price_entity: f(/^sensor\.ai_energy_ceny$/) || f(/^sensor\.okte_ceny/) || 'sensor.ai_energy_ceny' };
       [['threshold_entity', /^number\.ai_energy_prah_predaja$|^input_number\.ai_fve_prah/], ['plan_entity', /^sensor\.ai_energy_plan$|^sensor\.ai_fve_plan/]].forEach(([k, re]) => { const x = f(re); if (x) c[k] = x; });
-      // SOC: entita, ktorú má AI Energy nastavenú (atribút plánu nemáme) – inak prvá s "soc" a device_class battery
-      const soc = Object.keys(st).find((id) => /^sensor\./.test(id) && /soc/.test(id) && st[id].attributes.device_class === 'battery');
-      if (soc) c.soc_entity = soc;
+      // SOC: pri pláne AI Energy ho karta berie z plánu (atribút soc_entity) – tu sa nenastavuje.
+      // Pri starom template pláne skúsi prvý senzor s "soc" a device_class battery.
+      if (c.plan_entity !== 'sensor.ai_energy_plan') {
+        const soc = Object.keys(st).find((id) => /^sensor\./.test(id) && /soc/.test(id) && st[id].attributes.device_class === 'battery');
+        if (soc) c.soc_entity = soc;
+      }
       return c;
     }
     setConfig(c) {
@@ -151,7 +154,7 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
     _tipHide() { const r = this.shadowRoot; if (!r) return; r.querySelectorAll('.tip.on, .hov.on').forEach((e) => e.classList.remove('on')); }
     _render() {
       if (!this._hass || !this._cfg) return;
-      const c = this._cfg, ps = this._st(c.price_entity), pl = this._st(c.plan_entity), se = this._st(c.soc_entity);
+      const c = this._cfg, ps = this._st(c.price_entity), pl = this._st(c.plan_entity), se = this._st((pl && pl.attributes.soc_entity) || c.soc_entity);
       const sig = [ps && ps.last_updated, pl && pl.last_updated, this._prah(), this._day, this._past, this._open, [...(this._exp || [])].join(','), se && se.state, Math.floor(Date.now() / 60000)].join('|');
       if (this._built && sig === this._sig) return; this._sig = sig;
       if (!this.shadowRoot) this.attachShadow({ mode: 'open' });

@@ -2,6 +2,12 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.2.3] – 2026-10-29
+
+### Opravené
+- Home Price Card berie aktuálne SOC z entity nastavenej v AI Energy (atribút `soc_entity` plánu),
+  nie z prvého nájdeného senzora batérie.
+
 ## [0.2.2] – 2026-10-29
 
 ### Opravené
