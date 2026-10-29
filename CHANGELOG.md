@@ -2,6 +2,16 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.5.0] – 2026-10-29
+
+### Pridané
+- **Igy Battery Action Card** (`custom:igy-battery-action-card`) – odporúčaný režim, SOC a dôvod, čo príde ďalej;
+  posuvníky min/max SOC, min. predajná cena v €/kWh, v *Pokročilých* nabíjací výkon a korekcia FVE.
+- **Igy EV Action Card** (`custom:igy-ev-action-card`) – režim nabíjania (Vypnuté / Hneď / Od času / AI), čas štartu,
+  prúd (A aj kW), zdroje pre AI ako štítky (NT, prebytky FVE, lacný spot), Riadiť nabíjačku, dôvod.
+- Obe karty sa inštalujú s integráciou a netreba ich nastavovať – entity AI Energy si nájdu samé.
+- `sensor.ai_energy_auto_dovod` má atribút `fazy`.
+
 ## [0.4.1] – 2026-10-29
 
 ### Opravené

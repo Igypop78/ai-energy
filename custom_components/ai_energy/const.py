@@ -163,3 +163,4 @@ def has_ev(cfg: dict) -> bool:
 
 CARD_NAME = "igy-price-action-card"
 CARD_URL = f"/ai_energy/{CARD_NAME}.js"
+CONTROL_CARDS_URL = "/ai_energy/igy-action-cards.js"

@@ -261,4 +261,5 @@ class EvReasonSensor(_Base):
             "pripojene": d.get("pripojene"),
             "nabija": d.get("nabija"),
             "chyba": d.get("chyba"),
+            "fazy": self.coordinator.ev_config().phases,
         }

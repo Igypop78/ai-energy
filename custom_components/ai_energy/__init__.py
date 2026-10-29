@@ -17,6 +17,7 @@ from homeassistant.helpers.typing import ConfigType
 from .const import (
     CARD_NAME,
     CARD_URL,
+    CONTROL_CARDS_URL,
     CONF_PRICE_NT,
     DEFAULT_MAX_SOC,
     DEFAULT_MIN_SOC,
@@ -55,14 +56,16 @@ type AiEnergyConfigEntry = ConfigEntry[AiEnergyData]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Zaregistruje Igy Price Action Card – na dashboard ju stačí pridať, netreba kopírovať súbory."""
+    """Zaregistruje karty (Igy Price / Battery / EV Action Card) – na dashboard ju stačí pridať, netreba kopírovať súbory."""
     base = Path(__file__).parent
     card = base / "www" / f"{CARD_NAME}.js"
     manifest = await hass.async_add_executor_job((base / "manifest.json").read_text)
     version = json.loads(manifest)["version"]
-    await hass.http.async_register_static_paths([StaticPathConfig(CARD_URL, str(card), True)])
+    cards = [(CARD_URL, card), (CONTROL_CARDS_URL, base / "www" / "igy-action-cards.js")]
+    await hass.http.async_register_static_paths([StaticPathConfig(url, str(path), True) for url, path in cards])
     if "frontend" in hass.config.components:
-        add_extra_js_url(hass, f"{CARD_URL}?v={version}")
+        for url, _ in cards:
+            add_extra_js_url(hass, f"{url}?v={version}")
     return True
 
 

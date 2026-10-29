@@ -71,6 +71,13 @@ Karta sa nainštaluje **spolu s integráciou**. Na dashboarde: **Pridať kartu �
 – entity sa doplnia samé. Ukazuje ceny, predajnú hranicu a plán batérie ako časovú os.
 (Staršie dashboardy s `type: custom:home-price-card` fungujú ďalej.)
 
+### Ovládacie karty
+
+Tiež sa inštalujú s integráciou a **netreba ich nastavovať**:
+
+- **Igy Battery Action Card** – čo batéria robí a prečo, min/max SOC, min. predajná cena (v *Pokročilých* nabíjací výkon a korekcia FVE).
+- **Igy EV Action Card** – režim nabíjania auta, čas štartu, prúd, z čoho smie AI nabíjať a prepínač *Riadiť nabíjačku*.
+
 ## Inštalácia cez HACS
 
 1. HACS → **⋮ → Vlastné repozitáre** (Custom repositories).
