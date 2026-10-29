@@ -1,95 +1,193 @@
 {
   "config": {
     "step": {
-      "user": {
+      "vitaj": {
+        "title": "Welcome to AI Energy",
+        "description": "AI Energy plans when to charge the battery cheaply from the grid and when to sell at a higher price – using spot prices and your tariff. It can also charge your EV in the low tariff or from solar surplus.\n\n**Required:**\n• a spot price integration installed via HACS – e.g. **OKTE** or **Nord Pool**,\n• a battery state of charge sensor in % (usually from your inverter integration, e.g. Solarman).\n\n**Optional:** PV forecast (Solcast), house consumption and grid power measurement, an EV charger controllable from HA (e.g. SmartEVSE).\n\nFor the battery AI Energy only **recommends** for now – it does not switch the inverter. EV charging is controlled only after you enable it.\n\nWhat do you have?",
+        "data": {
+          "has_pv": "I have solar panels (PV)",
+          "has_ev": "I have an EV charger"
+        },
+        "data_description": {
+          "has_pv": "The next steps will ask for a production forecast (Solcast).",
+          "has_ev": "The charger must be in Home Assistant (switch or mode select)."
+        }
+      },
+      "ceny": {
         "title": "Spot prices",
-        "description": "Choose the sensor(s) with spot prices in 15-minute intervals (e.g. OKTE integration). Today is required, tomorrow is optional.",
+        "description": "Select the sensor with 15-minute spot prices. OKTE is pre-filled if installed.\n\nIf nothing is listed, install the OKTE (or Nord Pool) integration via HACS first and run the wizard again.",
         "data": {
           "price_today": "Prices today",
           "price_tomorrow": "Prices tomorrow"
         },
         "data_description": {
-          "price_today": "Sensor whose attributes contain the price list (e.g. period_data).",
-          "price_tomorrow": "Usually published around 14:00 for the next day."
+          "price_today": "Sensor from OKTE or Nord Pool, e.g. sensor.okte_prices_today.",
+          "price_tomorrow": "Optional. Tomorrow's prices are published around 13:00–14:00 – without them the plan ends at midnight."
         }
       },
-      "tarifa": {
-        "title": "Purchase tariff",
-        "description": "Low tariff (NT) hours and purchase prices including distribution. Defaults match ZSE DD3 for EV owners.",
+      "nakup": {
+        "title": "Buying electricity",
+        "description": "What you pay for electricity from the grid. Enter the **full price as on your invoice** – including distribution, fees and VAT.\n\nPre-filled with **ZSE DD3** (EV tariff).",
         "data": {
-          "nt_intervals": "Low tariff hours",
+          "nt_intervals": "Low tariff times",
           "price_nt": "Low tariff price",
-          "price_vt": "High tariff price",
-          "sell_fee": "Selling fee"
+          "price_vt": "High tariff price"
         },
         "data_description": {
-          "nt_intervals": "Format HH:MM-HH:MM separated by comma, e.g. 23:45-05:45, 13:45-15:45",
-          "sell_fee": "Amount your buyer deducts from the spot price when you sell."
+          "nt_intervals": "When cheaper electricity applies, e.g. 23:45-05:45, 13:45-15:45. Leave empty for a single tariff.",
+          "price_nt": "€ per kWh, e.g. 0.120.",
+          "price_vt": "€ per kWh, e.g. 0.210. Used for a single tariff."
+        }
+      },
+      "predaj": {
+        "title": "Selling electricity",
+        "description": "How do you sell the electricity you send to the grid (PV surplus or from the battery)?",
+        "data": {
+          "sell_mode": "Selling"
+        },
+        "data_description": {
+          "sell_mode": "With spot price, the battery sells in the most expensive 15-min slots. With I don't sell, nothing is sold and export is limited."
+        }
+      },
+      "predaj_spot": {
+        "title": "Selling at spot price",
+        "description": "The buyer pays the spot price minus their fee.",
+        "data": {
+          "sell_fee": "Buyer's fee"
+        },
+        "data_description": {
+          "sell_fee": "How much the buyer deducts from the spot price – € per kWh, e.g. 0.015. See your feed-in contract."
+        }
+      },
+      "predaj_pevna": {
+        "title": "Selling at a fixed price",
+        "description": "The buyer pays a fixed price. If some hours have a different price, enter that band too.",
+        "data": {
+          "sell_fixed_price": "Feed-in price",
+          "sell_band_intervals": "Band with a different price",
+          "sell_band_price": "Feed-in price in the band"
+        },
+        "data_description": {
+          "sell_fixed_price": "€ per kWh, e.g. 0.080.",
+          "sell_band_intervals": "Optional. Times, e.g. 17:00-21:00.",
+          "sell_band_price": "€ per kWh in that band."
         }
       },
       "bateria": {
-        "title": "Battery and PV",
-        "description": "Describe your battery. PV forecast is optional – without it the plan only uses the grid.",
+        "title": "Battery and house consumption",
         "data": {
-          "soc_entity": "Battery SOC",
+          "soc_entity": "Battery state of charge (SOC)",
           "capacity_kwh": "Battery capacity",
           "charge_kw": "Grid charging power",
           "export_kw": "Battery export power",
-          "house_kw": "Average house consumption",
-          "pv_forecast_today": "PV forecast today",
-          "pv_forecast_tomorrow": "PV forecast tomorrow",
-          "pv_power_entity": "PV power (measured)",
-          "house_power_entity": "House consumption (measured)"
+          "house_kwh_day": "House consumption per day",
+          "house_sensor": "House consumption sensor"
         },
         "data_description": {
-          "soc_entity": "Sensor with battery state of charge in %.",
-          "capacity_kwh": "Usable capacity.",
-          "charge_kw": "Power at which the inverter charges the battery from the grid.",
-          "export_kw": "Power at which the inverter exports from the battery.",
-          "house_kw": "Used in the plan to estimate consumption.",
-          "pv_forecast_today": "Optional – e.g. Solcast (detailedForecast attribute).",
-          "pv_power_entity": "Optional – refines the PV-only selling decision."
+          "soc_entity": "Sensor in % – with Deye via Solarman it is “Battery SOC”.",
+          "capacity_kwh": "Usable capacity in kWh (battery datasheet).",
+          "charge_kw": "How many kW the inverter charges from the grid. Deye: max current × battery voltage (200 A × 51 V ≈ 10 kW).",
+          "export_kw": "How many kW the inverter exports from the battery (inverter or grid connection limit).",
+          "house_kwh_day": "Estimate in kWh per day – yearly consumption / 365. Used until sensor history is available.",
+          "house_sensor": "Optional but more accurate: house consumption as energy (kWh) or power (W), e.g. inverter “Load power” – not the grid meter. Average of the last 7 days is used."
+        }
+      },
+      "fve": {
+        "title": "Solar (PV)",
+        "description": "With a production forecast the plan knows how much the sun will charge the battery – and does not buy from the grid needlessly.",
+        "data": {
+          "pv_forecast_today": "Forecast today",
+          "pv_forecast_tomorrow": "Forecast tomorrow",
+          "pv_power_entity": "PV power now"
+        },
+        "data_description": {
+          "pv_forecast_today": "Solcast “Forecast today” sensor (detailedForecast attribute).",
+          "pv_forecast_tomorrow": "Solcast “Forecast tomorrow” sensor.",
+          "pv_power_entity": "Optional. Current panel power (W or kW), e.g. inverter “PV power”."
         }
       },
       "auto": {
-        "title": "EV charging",
-        "description": "Optional – if you have no EV, leave **Charging switch** empty.\n\nFor a *select* switch fill in the options for charging and off (SmartEVSE is filled automatically: Normal / Off).{options}",
+        "title": "EV charger",
+        "description": "SmartEVSE is pre-filled automatically.",
         "data": {
-          "ev_switch_entity": "Charging switch",
-          "ev_on_option": "\"Charge\" option (select)",
-          "ev_off_option": "\"Off\" option (select)",
+          "ev_switch_entity": "Charging on/off",
           "ev_current_entity": "Charging current",
-          "ev_phases": "Phases",
-          "ev_min_a": "Minimum current",
-          "ev_max_a": "Maximum current",
-          "ev_plug_entity": "EV connected (state)",
-          "ev_charging_entity": "EV charging (state)",
-          "ev_power_entity": "Charger power (measured)",
-          "grid_power_entity": "Grid power (measured)",
-          "grid_invert": "Grid import is negative",
-          "grid_limit_kw": "Grid import limit (main breaker)",
-          "cable_kw": "Shared battery + EV limit"
+          "ev_phases": "Charger phases",
+          "ev_plug_entity": "Is the EV connected?",
+          "ev_charging_entity": "Is the EV charging?",
+          "ev_power_entity": "Charger power"
         },
         "data_description": {
-          "ev_switch_entity": "switch, input_boolean or select of the charger (e.g. select.smartevse_mode).",
-          "ev_current_entity": "number with current in A. Without it the charger is only switched on/off.",
-          "ev_plug_entity": "Optional – e.g. sensor.smartevse_evplugstate (Connected).",
-          "ev_charging_entity": "Optional – e.g. sensor.smartevse_state (Charging). Needed to detect a full battery in the Start time mode.",
-          "ev_power_entity": "Optional – more precise than the estimate from current.",
-          "grid_power_entity": "Optional but recommended – power at the main meter. Used for PV surplus and breaker protection.",
-          "grid_invert": "Enable if your sensor shows grid import as a negative value.",
-          "grid_limit_kw": "Total grid import will stay below this value (e.g. 14.5). 0 = no limit.",
-          "cable_kw": "If battery and wallbox share one cable/breaker (e.g. 12). Battery has priority. 0 = no limit."
+          "ev_switch_entity": "Entity that turns charging on and off: a switch, or a mode select (e.g. select.smartevse_mode).",
+          "ev_current_entity": "Entity that sets the current in A (e.g. Charge Current Override). Without it charging is only switched on/off.",
+          "ev_phases": "Most home wallboxes are 3-phase.",
+          "ev_plug_entity": "Optional. Connected / Disconnected sensor (e.g. sensor.smartevse_evplugstate).",
+          "ev_charging_entity": "Optional. Charging sensor (e.g. sensor.smartevse_state) – used to detect a full battery in the Start time mode.",
+          "ev_power_entity": "Optional. More precise than the estimate from current."
+        },
+        "sections": {
+          "pokrocile": {
+            "name": "Advanced",
+            "data": {
+              "ev_min_a": "Minimum current",
+              "ev_max_a": "Maximum current"
+            },
+            "data_description": {
+              "ev_min_a": "Most cars need at least 6 A.",
+              "ev_max_a": "Typically 16 A (3 phases = 11 kW) or 32 A (22 kW)."
+            }
+          }
         }
+      },
+      "auto_moznosti": {
+        "title": "Charger modes",
+        "description": "Your charger is controlled by a mode select. Choose which mode means **charge** and which **off**.\n\nSmartEVSE: **Normal** and **Off**. Do not use Smart or Solar – the charger controls current itself there and would fight AI Energy.",
+        "data": {
+          "ev_on_option": "When charging set",
+          "ev_off_option": "When off set"
+        }
+      },
+      "istic": {
+        "title": "Main breaker and grid meter",
+        "description": "AI Energy keeps the house with a charging EV below the main breaker.",
+        "data": {
+          "breaker_a": "Main breaker",
+          "breaker_phases": "Grid connection phases",
+          "grid_power_entity": "Grid power (meter)"
+        },
+        "data_description": {
+          "breaker_a": "Amps per phase – for a 3×25 A breaker enter 25. The limit is calculated with a reserve (Advanced).",
+          "grid_power_entity": "Recommended. Power at the main meter (+ import, − export). Without it the EV cannot charge from surplus or precisely respect the breaker."
+        },
+        "sections": {
+          "pokrocile": {
+            "name": "Advanced",
+            "data": {
+              "grid_invert": "Grid import is negative",
+              "breaker_reserve": "Breaker reserve",
+              "cable_kw": "Shared battery + EV limit"
+            },
+            "data_description": {
+              "grid_invert": "Enable if the sensor shows grid import as negative (it should be positive when the house draws from the grid).",
+              "breaker_reserve": "How many % below the breaker to stay. 10 % at 3×25 A = 15.5 kW limit.",
+              "cable_kw": "Only if battery and wallbox share one cable or breaker (e.g. 12 kW). Battery has priority. Empty = not monitored."
+            }
+          }
+        }
+      },
+      "hotovo": {
+        "title": "Done",
+        "description": "**Buying:** {nakup}\n**Selling:** {predaj}\n**Battery:** {bateria}\n**House consumption:** {spotreba}\n**PV:** {fve}\n**EV:** {auto} (grid limit {limit})\n\n**Next:**\n• add the **Igy Price Action Card** to your dashboard,\n• settings are on the **AI Energy** device (min SOC, min. selling price…),\n• EV control is **off** – turn on *EV control* once the recommendations look right.\n\nEverything can be changed in **Configure**."
       }
     },
     "error": {
-      "entity_not_found": "Entity not found.",
-      "no_prices": "No prices found in this sensor's attributes.",
-      "invalid_intervals": "Invalid hours – use HH:MM-HH:MM separated by comma.",
-      "ev_switch_required": "Select the charging switch too.",
+      "entity_not_found": "Entity does not exist.",
+      "no_prices": "No prices found in the sensor attributes.",
+      "invalid_intervals": "Invalid times – use HH:MM-HH:MM separated by commas.",
+      "band_price_required": "Enter the price for the band.",
+      "no_options": "This select has no modes.",
       "ev_min_max": "Minimum current is higher than maximum.",
-      "ev_option": "Enter an option the select knows: {options}"
+      "same_option": "Charging and off modes must differ."
     },
     "abort": {
       "already_configured": "AI Energy is already configured."
@@ -97,87 +195,203 @@
   },
   "options": {
     "step": {
-      "init": {
-        "title": "AI Energy settings",
-        "menu_options": {
-          "ceny": "Prices and tariff",
-          "bateria": "Battery and PV",
-          "auto": "EV charging"
+      "vitaj": {
+        "title": "Welcome to AI Energy",
+        "description": "AI Energy plans when to charge the battery cheaply from the grid and when to sell at a higher price – using spot prices and your tariff. It can also charge your EV in the low tariff or from solar surplus.\n\n**Required:**\n• a spot price integration installed via HACS – e.g. **OKTE** or **Nord Pool**,\n• a battery state of charge sensor in % (usually from your inverter integration, e.g. Solarman).\n\n**Optional:** PV forecast (Solcast), house consumption and grid power measurement, an EV charger controllable from HA (e.g. SmartEVSE).\n\nFor the battery AI Energy only **recommends** for now – it does not switch the inverter. EV charging is controlled only after you enable it.\n\nWhat do you have?",
+        "data": {
+          "has_pv": "I have solar panels (PV)",
+          "has_ev": "I have an EV charger"
+        },
+        "data_description": {
+          "has_pv": "The next steps will ask for a production forecast (Solcast).",
+          "has_ev": "The charger must be in Home Assistant (switch or mode select)."
         }
       },
       "ceny": {
-        "title": "Prices and tariff",
+        "title": "Spot prices",
+        "description": "Select the sensor with 15-minute spot prices. OKTE is pre-filled if installed.\n\nIf nothing is listed, install the OKTE (or Nord Pool) integration via HACS first and run the wizard again.",
         "data": {
           "price_today": "Prices today",
-          "price_tomorrow": "Prices tomorrow",
-          "nt_intervals": "Low tariff hours",
+          "price_tomorrow": "Prices tomorrow"
+        },
+        "data_description": {
+          "price_today": "Sensor from OKTE or Nord Pool, e.g. sensor.okte_prices_today.",
+          "price_tomorrow": "Optional. Tomorrow's prices are published around 13:00–14:00 – without them the plan ends at midnight."
+        }
+      },
+      "nakup": {
+        "title": "Buying electricity",
+        "description": "What you pay for electricity from the grid. Enter the **full price as on your invoice** – including distribution, fees and VAT.\n\nPre-filled with **ZSE DD3** (EV tariff).",
+        "data": {
+          "nt_intervals": "Low tariff times",
           "price_nt": "Low tariff price",
-          "price_vt": "High tariff price",
-          "sell_fee": "Selling fee"
+          "price_vt": "High tariff price"
+        },
+        "data_description": {
+          "nt_intervals": "When cheaper electricity applies, e.g. 23:45-05:45, 13:45-15:45. Leave empty for a single tariff.",
+          "price_nt": "€ per kWh, e.g. 0.120.",
+          "price_vt": "€ per kWh, e.g. 0.210. Used for a single tariff."
+        }
+      },
+      "predaj": {
+        "title": "Selling electricity",
+        "description": "How do you sell the electricity you send to the grid (PV surplus or from the battery)?",
+        "data": {
+          "sell_mode": "Selling"
+        },
+        "data_description": {
+          "sell_mode": "With spot price, the battery sells in the most expensive 15-min slots. With I don't sell, nothing is sold and export is limited."
+        }
+      },
+      "predaj_spot": {
+        "title": "Selling at spot price",
+        "description": "The buyer pays the spot price minus their fee.",
+        "data": {
+          "sell_fee": "Buyer's fee"
+        },
+        "data_description": {
+          "sell_fee": "How much the buyer deducts from the spot price – € per kWh, e.g. 0.015. See your feed-in contract."
+        }
+      },
+      "predaj_pevna": {
+        "title": "Selling at a fixed price",
+        "description": "The buyer pays a fixed price. If some hours have a different price, enter that band too.",
+        "data": {
+          "sell_fixed_price": "Feed-in price",
+          "sell_band_intervals": "Band with a different price",
+          "sell_band_price": "Feed-in price in the band"
+        },
+        "data_description": {
+          "sell_fixed_price": "€ per kWh, e.g. 0.080.",
+          "sell_band_intervals": "Optional. Times, e.g. 17:00-21:00.",
+          "sell_band_price": "€ per kWh in that band."
         }
       },
       "bateria": {
-        "title": "Battery and PV",
+        "title": "Battery and house consumption",
         "data": {
-          "soc_entity": "Battery SOC",
+          "soc_entity": "Battery state of charge (SOC)",
           "capacity_kwh": "Battery capacity",
           "charge_kw": "Grid charging power",
           "export_kw": "Battery export power",
-          "house_kw": "Average house consumption",
-          "pv_forecast_today": "PV forecast today",
-          "pv_forecast_tomorrow": "PV forecast tomorrow",
-          "pv_power_entity": "PV power (measured)",
-          "house_power_entity": "House consumption (measured)"
+          "house_kwh_day": "House consumption per day",
+          "house_sensor": "House consumption sensor"
         },
         "data_description": {
-          "soc_entity": "Sensor with battery state of charge in %.",
-          "capacity_kwh": "Usable capacity.",
-          "charge_kw": "Power at which the inverter charges the battery from the grid.",
-          "export_kw": "Power at which the inverter exports from the battery.",
-          "house_kw": "Used in the plan to estimate consumption.",
-          "pv_forecast_today": "Optional – e.g. Solcast (detailedForecast attribute).",
-          "pv_power_entity": "Optional – refines the PV-only selling decision."
+          "soc_entity": "Sensor in % – with Deye via Solarman it is “Battery SOC”.",
+          "capacity_kwh": "Usable capacity in kWh (battery datasheet).",
+          "charge_kw": "How many kW the inverter charges from the grid. Deye: max current × battery voltage (200 A × 51 V ≈ 10 kW).",
+          "export_kw": "How many kW the inverter exports from the battery (inverter or grid connection limit).",
+          "house_kwh_day": "Estimate in kWh per day – yearly consumption / 365. Used until sensor history is available.",
+          "house_sensor": "Optional but more accurate: house consumption as energy (kWh) or power (W), e.g. inverter “Load power” – not the grid meter. Average of the last 7 days is used."
+        }
+      },
+      "fve": {
+        "title": "Solar (PV)",
+        "description": "With a production forecast the plan knows how much the sun will charge the battery – and does not buy from the grid needlessly.",
+        "data": {
+          "pv_forecast_today": "Forecast today",
+          "pv_forecast_tomorrow": "Forecast tomorrow",
+          "pv_power_entity": "PV power now"
+        },
+        "data_description": {
+          "pv_forecast_today": "Solcast “Forecast today” sensor (detailedForecast attribute).",
+          "pv_forecast_tomorrow": "Solcast “Forecast tomorrow” sensor.",
+          "pv_power_entity": "Optional. Current panel power (W or kW), e.g. inverter “PV power”."
         }
       },
       "auto": {
-        "title": "EV charging",
-        "description": "Optional – if you have no EV, leave **Charging switch** empty.\n\nFor a *select* switch fill in the options for charging and off (SmartEVSE is filled automatically: Normal / Off).{options}",
+        "title": "EV charger",
+        "description": "SmartEVSE is pre-filled automatically.",
         "data": {
-          "ev_switch_entity": "Charging switch",
-          "ev_on_option": "\"Charge\" option (select)",
-          "ev_off_option": "\"Off\" option (select)",
+          "ev_switch_entity": "Charging on/off",
           "ev_current_entity": "Charging current",
-          "ev_phases": "Phases",
-          "ev_min_a": "Minimum current",
-          "ev_max_a": "Maximum current",
-          "ev_plug_entity": "EV connected (state)",
-          "ev_charging_entity": "EV charging (state)",
-          "ev_power_entity": "Charger power (measured)",
-          "grid_power_entity": "Grid power (measured)",
-          "grid_invert": "Grid import is negative",
-          "grid_limit_kw": "Grid import limit (main breaker)",
-          "cable_kw": "Shared battery + EV limit"
+          "ev_phases": "Charger phases",
+          "ev_plug_entity": "Is the EV connected?",
+          "ev_charging_entity": "Is the EV charging?",
+          "ev_power_entity": "Charger power"
         },
         "data_description": {
-          "ev_switch_entity": "switch, input_boolean or select of the charger (e.g. select.smartevse_mode).",
-          "ev_current_entity": "number with current in A. Without it the charger is only switched on/off.",
-          "ev_plug_entity": "Optional – e.g. sensor.smartevse_evplugstate (Connected).",
-          "ev_charging_entity": "Optional – e.g. sensor.smartevse_state (Charging). Needed to detect a full battery in the Start time mode.",
-          "ev_power_entity": "Optional – more precise than the estimate from current.",
-          "grid_power_entity": "Optional but recommended – power at the main meter. Used for PV surplus and breaker protection.",
-          "grid_invert": "Enable if your sensor shows grid import as a negative value.",
-          "grid_limit_kw": "Total grid import will stay below this value (e.g. 14.5). 0 = no limit.",
-          "cable_kw": "If battery and wallbox share one cable/breaker (e.g. 12). Battery has priority. 0 = no limit."
+          "ev_switch_entity": "Entity that turns charging on and off: a switch, or a mode select (e.g. select.smartevse_mode).",
+          "ev_current_entity": "Entity that sets the current in A (e.g. Charge Current Override). Without it charging is only switched on/off.",
+          "ev_phases": "Most home wallboxes are 3-phase.",
+          "ev_plug_entity": "Optional. Connected / Disconnected sensor (e.g. sensor.smartevse_evplugstate).",
+          "ev_charging_entity": "Optional. Charging sensor (e.g. sensor.smartevse_state) – used to detect a full battery in the Start time mode.",
+          "ev_power_entity": "Optional. More precise than the estimate from current."
+        },
+        "sections": {
+          "pokrocile": {
+            "name": "Advanced",
+            "data": {
+              "ev_min_a": "Minimum current",
+              "ev_max_a": "Maximum current"
+            },
+            "data_description": {
+              "ev_min_a": "Most cars need at least 6 A.",
+              "ev_max_a": "Typically 16 A (3 phases = 11 kW) or 32 A (22 kW)."
+            }
+          }
+        }
+      },
+      "auto_moznosti": {
+        "title": "Charger modes",
+        "description": "Your charger is controlled by a mode select. Choose which mode means **charge** and which **off**.\n\nSmartEVSE: **Normal** and **Off**. Do not use Smart or Solar – the charger controls current itself there and would fight AI Energy.",
+        "data": {
+          "ev_on_option": "When charging set",
+          "ev_off_option": "When off set"
+        }
+      },
+      "istic": {
+        "title": "Main breaker and grid meter",
+        "description": "AI Energy keeps the house with a charging EV below the main breaker.",
+        "data": {
+          "breaker_a": "Main breaker",
+          "breaker_phases": "Grid connection phases",
+          "grid_power_entity": "Grid power (meter)"
+        },
+        "data_description": {
+          "breaker_a": "Amps per phase – for a 3×25 A breaker enter 25. The limit is calculated with a reserve (Advanced).",
+          "grid_power_entity": "Recommended. Power at the main meter (+ import, − export). Without it the EV cannot charge from surplus or precisely respect the breaker."
+        },
+        "sections": {
+          "pokrocile": {
+            "name": "Advanced",
+            "data": {
+              "grid_invert": "Grid import is negative",
+              "breaker_reserve": "Breaker reserve",
+              "cable_kw": "Shared battery + EV limit"
+            },
+            "data_description": {
+              "grid_invert": "Enable if the sensor shows grid import as negative (it should be positive when the house draws from the grid).",
+              "breaker_reserve": "How many % below the breaker to stay. 10 % at 3×25 A = 15.5 kW limit.",
+              "cable_kw": "Only if battery and wallbox share one cable or breaker (e.g. 12 kW). Battery has priority. Empty = not monitored."
+            }
+          }
+        }
+      },
+      "init": {
+        "title": "AI Energy settings",
+        "description": "What do you want to change?",
+        "menu_options": {
+          "vitaj": "What I have",
+          "ceny": "Spot prices",
+          "nakup": "Buying electricity",
+          "predaj": "Selling electricity",
+          "bateria": "Battery and house consumption",
+          "fve": "Solar (PV)",
+          "auto": "EV charger",
+          "istic": "Main breaker and grid meter"
         }
       }
     },
     "error": {
-      "entity_not_found": "Entity not found.",
-      "no_prices": "No prices found in this sensor's attributes.",
-      "invalid_intervals": "Invalid hours – use HH:MM-HH:MM separated by comma.",
-      "ev_switch_required": "Select the charging switch too.",
+      "entity_not_found": "Entity does not exist.",
+      "no_prices": "No prices found in the sensor attributes.",
+      "invalid_intervals": "Invalid times – use HH:MM-HH:MM separated by commas.",
+      "band_price_required": "Enter the price for the band.",
+      "no_options": "This select has no modes.",
       "ev_min_max": "Minimum current is higher than maximum.",
-      "ev_option": "Enter an option the select knows: {options}"
+      "same_option": "Charging and off modes must differ."
     }
   },
   "entity": {
@@ -275,7 +489,20 @@
     }
   },
   "selector": {
+    "sell_mode": {
+      "options": {
+        "spot": "Spot price minus fee",
+        "fixed": "Fixed feed-in price",
+        "none": "I don't sell"
+      }
+    },
     "ev_phases": {
+      "options": {
+        "1": "1 phase",
+        "3": "3 phases"
+      }
+    },
+    "breaker_phases": {
       "options": {
         "1": "1 phase",
         "3": "3 phases"

@@ -143,3 +143,41 @@ def test_custom_tariff_single_nt():
     assert all(x.do > x.od for x in w)
     sl, p = run(ts(28, 12), 50, cfg=cfg)
     assert p.sloty and all(cfg.min_soc - 0.01 <= s or a != "P" for _, s, a in p.sloty)
+
+
+def _cfg(**kw):
+    from dataclasses import replace
+
+    return replace(CFG, **kw)
+
+
+def test_no_sell_mode_never_sells():
+    cfg = _cfg(sell_mode="none")
+    sl, p = run(ts(28, 12, 50), 63, cfg=cfg)
+    assert not any(a in ("P", "E") for _, _, a in p.sloty)
+    assert all(x["s"] < 0 for x in sl)
+    rec = P.recommend(p, sl, ts(28, 17), 63, cfg, TZ, pv_kw=2.0)
+    assert rec.rezim == P.MODE_NO_EXPORT
+
+
+def test_fixed_sell_price_uses_bands():
+    # pevný výkup 100 €/MWh, večer 18–21 h 300 €/MWh → predáva sa len v pásme
+    cfg = _cfg(sell_mode="fixed", sell_fee=0, sell_fixed=100, sell_bands=((18 * 60, 21 * 60),), sell_band_price=300, threshold=250)
+    sl = P.build_slots(prices(evening_peak), [], ts(28, 12, 45), cfg, TZ)
+    assert next(x for x in sl if x["t"] == ts(28, 19))["s"] == 300
+    assert next(x for x in sl if x["t"] == ts(28, 17))["s"] == 100
+    p = P.plan(sl, ts(28, 12, 50), 63, TZ, cfg)
+    predaje = [t for t, _, a in p.sloty if a == "P"]
+    assert predaje and all(ts(28, 18) <= t < ts(28, 21) or t >= ts(29, 18) for t in predaje)
+
+
+def test_spot_sell_price_is_spot_minus_fee():
+    sl = P.build_slots(prices(evening_peak), [], ts(28, 12), CFG, TZ)
+    assert next(x for x in sl if x["t"] == ts(28, 17))["s"] == 340 - 15
+
+
+def test_single_tariff_plans_without_grid_charging():
+    cfg = _cfg(nt_intervals=())
+    _, p = run(ts(28, 12, 50), 80, cfg=cfg)
+    assert p.sloty and not any(a in ("N", "G") for _, _, a in p.sloty)
+    assert any(a == "P" for _, _, a in p.sloty)  # večer predá to, čo v batérii je

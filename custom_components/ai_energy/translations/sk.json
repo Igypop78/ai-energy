@@ -1,95 +1,193 @@
 {
   "config": {
     "step": {
-      "user": {
-        "title": "Spotové ceny",
-        "description": "Vyber senzor(y) so spotovými cenami po 15 minútach (napr. integrácia OKTE). Dnešné ceny sú povinné, zajtrajšie voliteľné.",
+      "vitaj": {
+        "title": "Vitaj v AI Energy",
+        "description": "AI Energy plánuje, kedy batériu nabiť lacno zo siete a kedy z nej predať drahšie – podľa spotových cien a tvojej tarify. Vie aj nabíjať auto z lacnej tarify alebo z prebytku slnka.\n\n**Povinné:**\n• integrácia so spotovými cenami nainštalovaná cez HACS – napr. **OKTE** alebo **Nord Pool**,\n• senzor s nabitím batérie v % (zvyčajne z integrácie meniča, napr. Solarman).\n\n**Voliteľné:** predpoveď FVE (Solcast), meranie spotreby domu a odberu zo siete, nabíjačka auta ovládateľná z HA (napr. SmartEVSE).\n\nBatériu AI Energy zatiaľ len **odporúča** – na meniči nič neprepína. Nabíjanie auta riadi, až keď to zapneš.\n\nČo máš doma?",
         "data": {
-          "price_today": "Ceny dnes",
-          "price_tomorrow": "Ceny zajtra"
+          "has_pv": "Mám fotovoltiku (FVE)",
+          "has_ev": "Mám nabíjačku auta"
         },
         "data_description": {
-          "price_today": "Senzor, ktorý má zoznam cien v atribútoch (napr. period_data).",
-          "price_tomorrow": "Zvyčajne sa zverejňujú okolo 14:00 na nasledujúci deň."
+          "has_pv": "Ďalší krok sa opýta na predpoveď výroby (Solcast).",
+          "has_ev": "Nabíjačka musí byť v Home Assistant (vypínač alebo výber režimu)."
         }
       },
-      "tarifa": {
-        "title": "Tarifa nákupu",
-        "description": "Časy nízkej tarify (NT) a ceny nákupu vrátane distribúcie. Predvolené hodnoty zodpovedajú ZSE DD3 pre elektromobily.",
+      "ceny": {
+        "title": "Spotové ceny",
+        "description": "Vyber senzor so spotovými cenami po 15 minútach. Ak máš OKTE, je už predvyplnený.\n\nAk tu nič nevidíš, najprv cez HACS nainštaluj integráciu OKTE (alebo Nord Pool) a spusti sprievodcu znova.",
         "data": {
-          "nt_intervals": "Časy nízkej tarify",
-          "price_nt": "Cena v NT",
-          "price_vt": "Cena vo VT",
-          "sell_fee": "Poplatok za predaj"
+          "price_today": "Ceny na dnes",
+          "price_tomorrow": "Ceny na zajtra"
         },
         "data_description": {
-          "nt_intervals": "Formát HH:MM-HH:MM oddelené čiarkou, napr. 23:45-05:45, 13:45-15:45",
-          "sell_fee": "Koľko ti výkupca strhne zo spotovej ceny pri predaji."
+          "price_today": "Senzor z integrácie OKTE alebo Nord Pool, napr. sensor.okte_prices_today.",
+          "price_tomorrow": "Voliteľné. Zajtrajšie ceny sa zverejňujú okolo 13:00–14:00 – bez nich plán vidí len do polnoci."
+        }
+      },
+      "nakup": {
+        "title": "Nákup elektriny",
+        "description": "Za koľko elektrinu kupuješ zo siete. Ceny zadaj **celé, ako na faktúre** – vrátane distribúcie, poplatkov a DPH.\n\nPredvyplnené je **ZSE DD3** (sadzba pre elektromobily).",
+        "data": {
+          "nt_intervals": "Časy nízkej tarify (NT)",
+          "price_nt": "Cena v nízkej tarife",
+          "price_vt": "Cena vo vysokej tarife"
+        },
+        "data_description": {
+          "nt_intervals": "Kedy platí lacnejšia elektrina, napr. 23:45-05:45, 13:45-15:45. Ak máš jednu tarifu, nechaj prázdne.",
+          "price_nt": "€ za kWh, napr. 0,120.",
+          "price_vt": "€ za kWh, napr. 0,210. Pri jednej tarife sa používa táto cena."
+        }
+      },
+      "predaj": {
+        "title": "Predaj elektriny",
+        "description": "Ako predávaš elektrinu, ktorú pošleš do siete (prebytok FVE alebo z batérie)?",
+        "data": {
+          "sell_mode": "Spôsob predaja"
+        },
+        "data_description": {
+          "sell_mode": "Pri spotovej cene sa predáva v najdrahších 15-min úsekoch. Pri možnosti Nepredávam sa nič nepredá a pretoky sa obmedzia."
+        }
+      },
+      "predaj_spot": {
+        "title": "Predaj za spotovú cenu",
+        "description": "Výkupca ti platí spotovú cenu mínus svoj poplatok.",
+        "data": {
+          "sell_fee": "Poplatok výkupcu"
+        },
+        "data_description": {
+          "sell_fee": "Koľko výkupca strhne zo spotovej ceny – € za kWh, napr. 0,015. Nájdeš ho v zmluve o výkupe."
+        }
+      },
+      "predaj_pevna": {
+        "title": "Predaj za pevnú cenu",
+        "description": "Výkupca ti platí pevnú cenu. Ak má v niektorých hodinách inú cenu, zadaj aj pásmo.",
+        "data": {
+          "sell_fixed_price": "Výkupná cena",
+          "sell_band_intervals": "Pásmo s inou cenou",
+          "sell_band_price": "Výkupná cena v pásme"
+        },
+        "data_description": {
+          "sell_fixed_price": "€ za kWh, napr. 0,080.",
+          "sell_band_intervals": "Voliteľné. Časy, napr. 17:00-21:00.",
+          "sell_band_price": "€ za kWh v zadanom pásme."
         }
       },
       "bateria": {
-        "title": "Batéria a FVE",
-        "description": "Zadaj batériu. Predpoveď FVE je voliteľná – bez nej plán počíta len so sieťou.",
+        "title": "Batéria a spotreba domu",
         "data": {
-          "soc_entity": "SOC batérie",
+          "soc_entity": "Nabitie batérie (SOC)",
           "capacity_kwh": "Kapacita batérie",
-          "charge_kw": "Nabíjanie zo siete (výkon)",
-          "export_kw": "Predaj z batérie (výkon)",
-          "house_kw": "Priemerná spotreba domu",
-          "pv_forecast_today": "Predpoveď FVE dnes",
-          "pv_forecast_tomorrow": "Predpoveď FVE zajtra",
-          "pv_power_entity": "Výkon FVE (meranie)",
-          "house_power_entity": "Spotreba domu (meranie)"
+          "charge_kw": "Výkon nabíjania zo siete",
+          "export_kw": "Výkon predaja z batérie",
+          "house_kwh_day": "Spotreba domu za deň",
+          "house_sensor": "Senzor spotreby domu"
         },
         "data_description": {
-          "soc_entity": "Senzor so stavom nabitia batérie v %.",
-          "capacity_kwh": "Využiteľná kapacita.",
-          "charge_kw": "Akým výkonom menič nabíja batériu zo siete.",
-          "export_kw": "Akým výkonom menič predáva z batérie do siete.",
-          "house_kw": "Používa sa v pláne na odhad spotreby.",
-          "pv_forecast_today": "Voliteľné – napr. Solcast (atribút detailedForecast).",
-          "pv_power_entity": "Voliteľné – spresní rozhodovanie o predaji len z FVE."
+          "soc_entity": "Senzor v % – pri Deye cez Solarman sa volá „Battery SOC“.",
+          "capacity_kwh": "Využiteľná kapacita v kWh (z dokumentácie batérie).",
+          "charge_kw": "Koľko kW menič nabíja batériu zo siete. Pri Deye: max. prúd × napätie batérie (200 A × 51 V ≈ 10 kW).",
+          "export_kw": "Koľko kW menič posiela z batérie do siete (obmedzuje menič alebo povolenie na pripojenie).",
+          "house_kwh_day": "Odhad v kWh za deň – ročná spotreba z faktúry / 365. Použije sa, kým nie je história senzora.",
+          "house_sensor": "Voliteľné, ale presnejšie: spotreba domu ako energia (kWh) alebo výkon (W), napr. „Load power“ z meniča – nie elektromer. Z posledných 7 dní sa spočíta priemer."
+        }
+      },
+      "fve": {
+        "title": "Fotovoltika",
+        "description": "S predpoveďou výroby plán vie, koľko batériu nabije slnko – a nekúpi zbytočne zo siete.",
+        "data": {
+          "pv_forecast_today": "Predpoveď výroby dnes",
+          "pv_forecast_tomorrow": "Predpoveď výroby zajtra",
+          "pv_power_entity": "Výkon FVE teraz"
+        },
+        "data_description": {
+          "pv_forecast_today": "Senzor Solcast „Forecast today“ (atribút detailedForecast).",
+          "pv_forecast_tomorrow": "Senzor Solcast „Forecast tomorrow“.",
+          "pv_power_entity": "Voliteľné. Okamžitý výkon panelov (W alebo kW), napr. „PV power“ z meniča."
         }
       },
       "auto": {
-        "title": "Nabíjanie auta",
-        "description": "Voliteľné – ak auto nemáš, nechaj **Zapnutie nabíjania** prázdne.\n\nPri prepínači typu *select* doplň možnosti pre nabíjanie a vypnutie (pri SmartEVSE sa doplnia samé: Normal / Off).{options}",
+        "title": "Nabíjačka auta",
+        "description": "Ak máš SmartEVSE, všetko je predvyplnené.",
         "data": {
           "ev_switch_entity": "Zapnutie nabíjania",
-          "ev_on_option": "Možnosť „nabíjaj“ (pri select)",
-          "ev_off_option": "Možnosť „vypni“ (pri select)",
           "ev_current_entity": "Nabíjací prúd",
-          "ev_phases": "Počet fáz",
-          "ev_min_a": "Minimálny prúd",
-          "ev_max_a": "Maximálny prúd",
-          "ev_plug_entity": "Auto pripojené (stav)",
-          "ev_charging_entity": "Auto nabíja (stav)",
-          "ev_power_entity": "Výkon nabíjačky (meranie)",
-          "grid_power_entity": "Odber zo siete (meranie)",
-          "grid_invert": "Odber zo siete je záporný",
-          "grid_limit_kw": "Limit odberu zo siete (istič)",
-          "cable_kw": "Spoločný limit batérie a auta"
+          "ev_phases": "Počet fáz nabíjačky",
+          "ev_plug_entity": "Je auto pripojené?",
+          "ev_charging_entity": "Nabíja auto?",
+          "ev_power_entity": "Výkon nabíjačky"
         },
         "data_description": {
-          "ev_switch_entity": "switch, input_boolean alebo select nabíjačky (napr. select.smartevse_mode).",
-          "ev_current_entity": "number s prúdom v A (napr. number.smartevse_chargecurrentoverride). Bez neho sa len zapína/vypína.",
-          "ev_plug_entity": "Voliteľné – napr. sensor.smartevse_evplugstate (Connected).",
-          "ev_charging_entity": "Voliteľné – napr. sensor.smartevse_state (Charging). Potrebné na rozpoznanie dobitia v režime Od času.",
-          "ev_power_entity": "Voliteľné – presnejšie než odhad z prúdu.",
-          "grid_power_entity": "Voliteľné, ale odporúčané – výkon na hlavnom elektromeri. Používa sa na prebytky FVE a strážanie ističa.",
-          "grid_invert": "Zapni, ak tvoj senzor ukazuje odber zo siete ako zápornú hodnotu.",
-          "grid_limit_kw": "Celkový odber domu zo siete neprekročí túto hodnotu (napr. 14,5). 0 = bez limitu.",
-          "cable_kw": "Ak batéria a wallbox idú cez spoločný kábel/istič (napr. 12). Batéria má prednosť. 0 = bez limitu."
+          "ev_switch_entity": "Entita, ktorou sa nabíjanie zapína a vypína: vypínač, alebo výber režimu (napr. select.smartevse_mode).",
+          "ev_current_entity": "Entita na nastavenie prúdu v A (napr. Charge Current Override). Bez nej sa nabíjanie len zapína a vypína.",
+          "ev_phases": "Väčšina wallboxov v domoch je 3-fázová.",
+          "ev_plug_entity": "Voliteľné. Senzor typu Connected / Disconnected (napr. sensor.smartevse_evplugstate).",
+          "ev_charging_entity": "Voliteľné. Senzor typu Charging (napr. sensor.smartevse_state) – podľa neho režim „Od času“ spozná, že je auto dobité.",
+          "ev_power_entity": "Voliteľné. Presnejšie ako odhad z prúdu."
+        },
+        "sections": {
+          "pokrocile": {
+            "name": "Pokročilé",
+            "data": {
+              "ev_min_a": "Minimálny prúd",
+              "ev_max_a": "Maximálny prúd"
+            },
+            "data_description": {
+              "ev_min_a": "Väčšina áut potrebuje aspoň 6 A.",
+              "ev_max_a": "Typicky 16 A (3 fázy = 11 kW) alebo 32 A (22 kW)."
+            }
+          }
         }
+      },
+      "auto_moznosti": {
+        "title": "Režimy nabíjačky",
+        "description": "Tvoja nabíjačka sa ovláda výberom režimu. Vyber, ktorý režim znamená **nabíjaj** a ktorý **vypni**.\n\nPri SmartEVSE: **Normal** a **Off**. Režimy Smart a Solar nepoužívaj – v nich si nabíjačka riadi prúd sama a bila by sa s AI Energy.",
+        "data": {
+          "ev_on_option": "Pri nabíjaní nastav",
+          "ev_off_option": "Pri vypnutí nastav"
+        }
+      },
+      "istic": {
+        "title": "Istič a elektromer",
+        "description": "AI Energy bude strážiť, aby dom s nabíjajúcim autom neprekročil hlavný istič.",
+        "data": {
+          "breaker_a": "Hlavný istič",
+          "breaker_phases": "Počet fáz prípojky",
+          "grid_power_entity": "Odber zo siete (elektromer)"
+        },
+        "data_description": {
+          "breaker_a": "Ampéry na fázu – pri ističi 3×25 A zadaj 25. Strop odberu sa vypočíta s rezervou (Pokročilé).",
+          "grid_power_entity": "Odporúčané. Výkon na hlavnom elektromeri (+ odber, − pretok). Bez neho auto nevie nabíjať z prebytkov ani presne strážiť istič."
+        },
+        "sections": {
+          "pokrocile": {
+            "name": "Pokročilé",
+            "data": {
+              "grid_invert": "Odber zo siete je záporný",
+              "breaker_reserve": "Rezerva ističa",
+              "cable_kw": "Spoločný limit batérie a auta"
+            },
+            "data_description": {
+              "grid_invert": "Zapni, ak senzor ukazuje odber zo siete mínusom (keď dom berie zo siete, má byť kladný).",
+              "breaker_reserve": "O koľko % pod istič sa drží odber. 10 % pri 3×25 A = strop 15,5 kW.",
+              "cable_kw": "Len ak batéria a wallbox idú cez spoločný kábel alebo istič (napr. 12 kW). Batéria má prednosť. Prázdne = nesleduje sa."
+            }
+          }
+        }
+      },
+      "hotovo": {
+        "title": "Hotovo",
+        "description": "**Nákup:** {nakup}\n**Predaj:** {predaj}\n**Batéria:** {bateria}\n**Spotreba domu:** {spotreba}\n**FVE:** {fve}\n**Auto:** {auto} (limit odberu {limit})\n\n**Čo ďalej:**\n• na dashboard pridaj kartu **Igy Price Action Card**,\n• nastavenia nájdeš v zariadení **AI Energy** (min SOC, min. predajná cena…),\n• riadenie auta je **vypnuté** – zapni *Auto – riadenie*, keď si overíš, že odporúčania sedia.\n\nVšetko sa dá zmeniť v **Konfigurovať**."
       }
     },
     "error": {
       "entity_not_found": "Entita neexistuje.",
       "no_prices": "V atribútoch senzora sa nenašli ceny.",
       "invalid_intervals": "Neplatné časy – použi HH:MM-HH:MM oddelené čiarkou.",
-      "ev_switch_required": "Vyber aj entitu na zapnutie nabíjania.",
+      "band_price_required": "Zadaj cenu pre pásmo.",
+      "no_options": "Tento výber nemá žiadne režimy.",
       "ev_min_max": "Minimálny prúd je väčší než maximálny.",
-      "ev_option": "Zadaj možnosť, ktorú select pozná: {options}"
+      "same_option": "Režim pri nabíjaní a pri vypnutí musí byť rôzny."
     },
     "abort": {
       "already_configured": "AI Energy je už nastavená."
@@ -97,77 +195,192 @@
   },
   "options": {
     "step": {
-      "init": {
-        "title": "Nastavenia AI Energy",
-        "menu_options": {
-          "ceny": "Ceny a tarifa",
-          "bateria": "Batéria a FVE",
-          "auto": "Nabíjanie auta"
+      "vitaj": {
+        "title": "Vitaj v AI Energy",
+        "description": "AI Energy plánuje, kedy batériu nabiť lacno zo siete a kedy z nej predať drahšie – podľa spotových cien a tvojej tarify. Vie aj nabíjať auto z lacnej tarify alebo z prebytku slnka.\n\n**Povinné:**\n• integrácia so spotovými cenami nainštalovaná cez HACS – napr. **OKTE** alebo **Nord Pool**,\n• senzor s nabitím batérie v % (zvyčajne z integrácie meniča, napr. Solarman).\n\n**Voliteľné:** predpoveď FVE (Solcast), meranie spotreby domu a odberu zo siete, nabíjačka auta ovládateľná z HA (napr. SmartEVSE).\n\nBatériu AI Energy zatiaľ len **odporúča** – na meniči nič neprepína. Nabíjanie auta riadi, až keď to zapneš.\n\nČo máš doma?",
+        "data": {
+          "has_pv": "Mám fotovoltiku (FVE)",
+          "has_ev": "Mám nabíjačku auta"
+        },
+        "data_description": {
+          "has_pv": "Ďalší krok sa opýta na predpoveď výroby (Solcast).",
+          "has_ev": "Nabíjačka musí byť v Home Assistant (vypínač alebo výber režimu)."
         }
       },
       "ceny": {
-        "title": "Ceny a tarifa",
+        "title": "Spotové ceny",
+        "description": "Vyber senzor so spotovými cenami po 15 minútach. Ak máš OKTE, je už predvyplnený.\n\nAk tu nič nevidíš, najprv cez HACS nainštaluj integráciu OKTE (alebo Nord Pool) a spusti sprievodcu znova.",
         "data": {
-          "price_today": "Ceny dnes",
-          "price_tomorrow": "Ceny zajtra",
-          "nt_intervals": "Časy nízkej tarify",
-          "price_nt": "Cena v NT",
-          "price_vt": "Cena vo VT",
-          "sell_fee": "Poplatok za predaj"
+          "price_today": "Ceny na dnes",
+          "price_tomorrow": "Ceny na zajtra"
+        },
+        "data_description": {
+          "price_today": "Senzor z integrácie OKTE alebo Nord Pool, napr. sensor.okte_prices_today.",
+          "price_tomorrow": "Voliteľné. Zajtrajšie ceny sa zverejňujú okolo 13:00–14:00 – bez nich plán vidí len do polnoci."
+        }
+      },
+      "nakup": {
+        "title": "Nákup elektriny",
+        "description": "Za koľko elektrinu kupuješ zo siete. Ceny zadaj **celé, ako na faktúre** – vrátane distribúcie, poplatkov a DPH.\n\nPredvyplnené je **ZSE DD3** (sadzba pre elektromobily).",
+        "data": {
+          "nt_intervals": "Časy nízkej tarify (NT)",
+          "price_nt": "Cena v nízkej tarife",
+          "price_vt": "Cena vo vysokej tarife"
+        },
+        "data_description": {
+          "nt_intervals": "Kedy platí lacnejšia elektrina, napr. 23:45-05:45, 13:45-15:45. Ak máš jednu tarifu, nechaj prázdne.",
+          "price_nt": "€ za kWh, napr. 0,120.",
+          "price_vt": "€ za kWh, napr. 0,210. Pri jednej tarife sa používa táto cena."
+        }
+      },
+      "predaj": {
+        "title": "Predaj elektriny",
+        "description": "Ako predávaš elektrinu, ktorú pošleš do siete (prebytok FVE alebo z batérie)?",
+        "data": {
+          "sell_mode": "Spôsob predaja"
+        },
+        "data_description": {
+          "sell_mode": "Pri spotovej cene sa predáva v najdrahších 15-min úsekoch. Pri možnosti Nepredávam sa nič nepredá a pretoky sa obmedzia."
+        }
+      },
+      "predaj_spot": {
+        "title": "Predaj za spotovú cenu",
+        "description": "Výkupca ti platí spotovú cenu mínus svoj poplatok.",
+        "data": {
+          "sell_fee": "Poplatok výkupcu"
+        },
+        "data_description": {
+          "sell_fee": "Koľko výkupca strhne zo spotovej ceny – € za kWh, napr. 0,015. Nájdeš ho v zmluve o výkupe."
+        }
+      },
+      "predaj_pevna": {
+        "title": "Predaj za pevnú cenu",
+        "description": "Výkupca ti platí pevnú cenu. Ak má v niektorých hodinách inú cenu, zadaj aj pásmo.",
+        "data": {
+          "sell_fixed_price": "Výkupná cena",
+          "sell_band_intervals": "Pásmo s inou cenou",
+          "sell_band_price": "Výkupná cena v pásme"
+        },
+        "data_description": {
+          "sell_fixed_price": "€ za kWh, napr. 0,080.",
+          "sell_band_intervals": "Voliteľné. Časy, napr. 17:00-21:00.",
+          "sell_band_price": "€ za kWh v zadanom pásme."
         }
       },
       "bateria": {
-        "title": "Batéria a FVE",
+        "title": "Batéria a spotreba domu",
         "data": {
-          "soc_entity": "SOC batérie",
+          "soc_entity": "Nabitie batérie (SOC)",
           "capacity_kwh": "Kapacita batérie",
-          "charge_kw": "Nabíjanie zo siete (výkon)",
-          "export_kw": "Predaj z batérie (výkon)",
-          "house_kw": "Priemerná spotreba domu",
-          "pv_forecast_today": "Predpoveď FVE dnes",
-          "pv_forecast_tomorrow": "Predpoveď FVE zajtra",
-          "pv_power_entity": "Výkon FVE (meranie)",
-          "house_power_entity": "Spotreba domu (meranie)"
+          "charge_kw": "Výkon nabíjania zo siete",
+          "export_kw": "Výkon predaja z batérie",
+          "house_kwh_day": "Spotreba domu za deň",
+          "house_sensor": "Senzor spotreby domu"
         },
         "data_description": {
-          "soc_entity": "Senzor so stavom nabitia batérie v %.",
-          "capacity_kwh": "Využiteľná kapacita.",
-          "charge_kw": "Akým výkonom menič nabíja batériu zo siete.",
-          "export_kw": "Akým výkonom menič predáva z batérie do siete.",
-          "house_kw": "Používa sa v pláne na odhad spotreby.",
-          "pv_forecast_today": "Voliteľné – napr. Solcast (atribút detailedForecast).",
-          "pv_power_entity": "Voliteľné – spresní rozhodovanie o predaji len z FVE."
+          "soc_entity": "Senzor v % – pri Deye cez Solarman sa volá „Battery SOC“.",
+          "capacity_kwh": "Využiteľná kapacita v kWh (z dokumentácie batérie).",
+          "charge_kw": "Koľko kW menič nabíja batériu zo siete. Pri Deye: max. prúd × napätie batérie (200 A × 51 V ≈ 10 kW).",
+          "export_kw": "Koľko kW menič posiela z batérie do siete (obmedzuje menič alebo povolenie na pripojenie).",
+          "house_kwh_day": "Odhad v kWh za deň – ročná spotreba z faktúry / 365. Použije sa, kým nie je história senzora.",
+          "house_sensor": "Voliteľné, ale presnejšie: spotreba domu ako energia (kWh) alebo výkon (W), napr. „Load power“ z meniča – nie elektromer. Z posledných 7 dní sa spočíta priemer."
+        }
+      },
+      "fve": {
+        "title": "Fotovoltika",
+        "description": "S predpoveďou výroby plán vie, koľko batériu nabije slnko – a nekúpi zbytočne zo siete.",
+        "data": {
+          "pv_forecast_today": "Predpoveď výroby dnes",
+          "pv_forecast_tomorrow": "Predpoveď výroby zajtra",
+          "pv_power_entity": "Výkon FVE teraz"
+        },
+        "data_description": {
+          "pv_forecast_today": "Senzor Solcast „Forecast today“ (atribút detailedForecast).",
+          "pv_forecast_tomorrow": "Senzor Solcast „Forecast tomorrow“.",
+          "pv_power_entity": "Voliteľné. Okamžitý výkon panelov (W alebo kW), napr. „PV power“ z meniča."
         }
       },
       "auto": {
-        "title": "Nabíjanie auta",
-        "description": "Voliteľné – ak auto nemáš, nechaj **Zapnutie nabíjania** prázdne.\n\nPri prepínači typu *select* doplň možnosti pre nabíjanie a vypnutie (pri SmartEVSE sa doplnia samé: Normal / Off).{options}",
+        "title": "Nabíjačka auta",
+        "description": "Ak máš SmartEVSE, všetko je predvyplnené.",
         "data": {
           "ev_switch_entity": "Zapnutie nabíjania",
-          "ev_on_option": "Možnosť „nabíjaj“ (pri select)",
-          "ev_off_option": "Možnosť „vypni“ (pri select)",
           "ev_current_entity": "Nabíjací prúd",
-          "ev_phases": "Počet fáz",
-          "ev_min_a": "Minimálny prúd",
-          "ev_max_a": "Maximálny prúd",
-          "ev_plug_entity": "Auto pripojené (stav)",
-          "ev_charging_entity": "Auto nabíja (stav)",
-          "ev_power_entity": "Výkon nabíjačky (meranie)",
-          "grid_power_entity": "Odber zo siete (meranie)",
-          "grid_invert": "Odber zo siete je záporný",
-          "grid_limit_kw": "Limit odberu zo siete (istič)",
-          "cable_kw": "Spoločný limit batérie a auta"
+          "ev_phases": "Počet fáz nabíjačky",
+          "ev_plug_entity": "Je auto pripojené?",
+          "ev_charging_entity": "Nabíja auto?",
+          "ev_power_entity": "Výkon nabíjačky"
         },
         "data_description": {
-          "ev_switch_entity": "switch, input_boolean alebo select nabíjačky (napr. select.smartevse_mode).",
-          "ev_current_entity": "number s prúdom v A (napr. number.smartevse_chargecurrentoverride). Bez neho sa len zapína/vypína.",
-          "ev_plug_entity": "Voliteľné – napr. sensor.smartevse_evplugstate (Connected).",
-          "ev_charging_entity": "Voliteľné – napr. sensor.smartevse_state (Charging). Potrebné na rozpoznanie dobitia v režime Od času.",
-          "ev_power_entity": "Voliteľné – presnejšie než odhad z prúdu.",
-          "grid_power_entity": "Voliteľné, ale odporúčané – výkon na hlavnom elektromeri. Používa sa na prebytky FVE a strážanie ističa.",
-          "grid_invert": "Zapni, ak tvoj senzor ukazuje odber zo siete ako zápornú hodnotu.",
-          "grid_limit_kw": "Celkový odber domu zo siete neprekročí túto hodnotu (napr. 14,5). 0 = bez limitu.",
-          "cable_kw": "Ak batéria a wallbox idú cez spoločný kábel/istič (napr. 12). Batéria má prednosť. 0 = bez limitu."
+          "ev_switch_entity": "Entita, ktorou sa nabíjanie zapína a vypína: vypínač, alebo výber režimu (napr. select.smartevse_mode).",
+          "ev_current_entity": "Entita na nastavenie prúdu v A (napr. Charge Current Override). Bez nej sa nabíjanie len zapína a vypína.",
+          "ev_phases": "Väčšina wallboxov v domoch je 3-fázová.",
+          "ev_plug_entity": "Voliteľné. Senzor typu Connected / Disconnected (napr. sensor.smartevse_evplugstate).",
+          "ev_charging_entity": "Voliteľné. Senzor typu Charging (napr. sensor.smartevse_state) – podľa neho režim „Od času“ spozná, že je auto dobité.",
+          "ev_power_entity": "Voliteľné. Presnejšie ako odhad z prúdu."
+        },
+        "sections": {
+          "pokrocile": {
+            "name": "Pokročilé",
+            "data": {
+              "ev_min_a": "Minimálny prúd",
+              "ev_max_a": "Maximálny prúd"
+            },
+            "data_description": {
+              "ev_min_a": "Väčšina áut potrebuje aspoň 6 A.",
+              "ev_max_a": "Typicky 16 A (3 fázy = 11 kW) alebo 32 A (22 kW)."
+            }
+          }
+        }
+      },
+      "auto_moznosti": {
+        "title": "Režimy nabíjačky",
+        "description": "Tvoja nabíjačka sa ovláda výberom režimu. Vyber, ktorý režim znamená **nabíjaj** a ktorý **vypni**.\n\nPri SmartEVSE: **Normal** a **Off**. Režimy Smart a Solar nepoužívaj – v nich si nabíjačka riadi prúd sama a bila by sa s AI Energy.",
+        "data": {
+          "ev_on_option": "Pri nabíjaní nastav",
+          "ev_off_option": "Pri vypnutí nastav"
+        }
+      },
+      "istic": {
+        "title": "Istič a elektromer",
+        "description": "AI Energy bude strážiť, aby dom s nabíjajúcim autom neprekročil hlavný istič.",
+        "data": {
+          "breaker_a": "Hlavný istič",
+          "breaker_phases": "Počet fáz prípojky",
+          "grid_power_entity": "Odber zo siete (elektromer)"
+        },
+        "data_description": {
+          "breaker_a": "Ampéry na fázu – pri ističi 3×25 A zadaj 25. Strop odberu sa vypočíta s rezervou (Pokročilé).",
+          "grid_power_entity": "Odporúčané. Výkon na hlavnom elektromeri (+ odber, − pretok). Bez neho auto nevie nabíjať z prebytkov ani presne strážiť istič."
+        },
+        "sections": {
+          "pokrocile": {
+            "name": "Pokročilé",
+            "data": {
+              "grid_invert": "Odber zo siete je záporný",
+              "breaker_reserve": "Rezerva ističa",
+              "cable_kw": "Spoločný limit batérie a auta"
+            },
+            "data_description": {
+              "grid_invert": "Zapni, ak senzor ukazuje odber zo siete mínusom (keď dom berie zo siete, má byť kladný).",
+              "breaker_reserve": "O koľko % pod istič sa drží odber. 10 % pri 3×25 A = strop 15,5 kW.",
+              "cable_kw": "Len ak batéria a wallbox idú cez spoločný kábel alebo istič (napr. 12 kW). Batéria má prednosť. Prázdne = nesleduje sa."
+            }
+          }
+        }
+      },
+      "init": {
+        "title": "Nastavenia AI Energy",
+        "description": "Čo chceš zmeniť?",
+        "menu_options": {
+          "vitaj": "Čo mám doma",
+          "ceny": "Spotové ceny",
+          "nakup": "Nákup elektriny",
+          "predaj": "Predaj elektriny",
+          "bateria": "Batéria a spotreba domu",
+          "fve": "Fotovoltika",
+          "auto": "Nabíjačka auta",
+          "istic": "Istič a elektromer"
         }
       }
     },
@@ -175,9 +388,10 @@
       "entity_not_found": "Entita neexistuje.",
       "no_prices": "V atribútoch senzora sa nenašli ceny.",
       "invalid_intervals": "Neplatné časy – použi HH:MM-HH:MM oddelené čiarkou.",
-      "ev_switch_required": "Vyber aj entitu na zapnutie nabíjania.",
+      "band_price_required": "Zadaj cenu pre pásmo.",
+      "no_options": "Tento výber nemá žiadne režimy.",
       "ev_min_max": "Minimálny prúd je väčší než maximálny.",
-      "ev_option": "Zadaj možnosť, ktorú select pozná: {options}"
+      "same_option": "Režim pri nabíjaní a pri vypnutí musí byť rôzny."
     }
   },
   "entity": {
@@ -275,7 +489,20 @@
     }
   },
   "selector": {
+    "sell_mode": {
+      "options": {
+        "spot": "Spotová cena mínus poplatok",
+        "fixed": "Pevná výkupná cena",
+        "none": "Nepredávam"
+      }
+    },
     "ev_phases": {
+      "options": {
+        "1": "1 fáza",
+        "3": "3 fázy"
+      }
+    },
+    "breaker_phases": {
       "options": {
         "1": "1 fáza",
         "3": "3 fázy"

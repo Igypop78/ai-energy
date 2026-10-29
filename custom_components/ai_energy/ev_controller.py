@@ -26,18 +26,12 @@ from .const import (
     CONF_EV_POWER,
     CONF_EV_SWITCH,
     CONF_GRID_INVERT,
-    CONF_GRID_LIMIT_KW,
     CONF_GRID_POWER,
-    CONF_HOUSE_KW,
-    CONF_HOUSE_POWER,
     CONF_NT_INTERVALS,
-    CONF_PV_POWER,
     DEFAULT_CABLE_KW,
     DEFAULT_EV_MAX_A,
     DEFAULT_EV_MIN_A,
     DEFAULT_EV_PHASES,
-    DEFAULT_GRID_LIMIT_KW,
-    DEFAULT_HOUSE_KW,
     DEFAULT_NT_INTERVALS,
     DOMAIN,
     EV_CONTROL,
@@ -49,6 +43,8 @@ from .const import (
     EV_USE_PV,
     EV_USE_SPOT,
     SET_CHARGE_KW,
+    grid_limit_kw,
+    has_ev,
 )
 from .ev import MODE_OFF, EvConfig, EvDecision, EvInputs, EvState, decide
 from .plan_coordinator import PlanCoordinator, _kw
@@ -60,7 +56,7 @@ ON_STATES = {"on", "true", "connected", "plugged", "plugged in", "charging", "ho
 
 
 def ev_enabled(cfg: dict[str, Any]) -> bool:
-    return bool(cfg.get(CONF_EV_SWITCH))
+    return has_ev(cfg)
 
 
 def default_ev_settings(cfg: dict[str, Any]) -> dict[str, Any]:
@@ -108,9 +104,9 @@ class EvController(DataUpdateCoordinator[dict[str, Any]]):
             phases=int(c.get(CONF_EV_PHASES, DEFAULT_EV_PHASES)),
             min_a=int(c.get(CONF_EV_MIN_A, DEFAULT_EV_MIN_A)),
             max_a=int(c.get(CONF_EV_MAX_A, DEFAULT_EV_MAX_A)),
-            grid_limit_kw=float(c.get(CONF_GRID_LIMIT_KW, DEFAULT_GRID_LIMIT_KW) or 0),
+            grid_limit_kw=grid_limit_kw(c),
             cable_kw=float(c.get(CONF_CABLE_KW, DEFAULT_CABLE_KW) or 0),
-            house_kw=float(c.get(CONF_HOUSE_KW, DEFAULT_HOUSE_KW)),
+            house_kw=self.plan.house_kw,
             battery_charge_kw=float(self.plan.settings.get(SET_CHARGE_KW, 0)),
         )
 
@@ -127,7 +123,7 @@ class EvController(DataUpdateCoordinator[dict[str, Any]]):
 
         # odber zo siete: prepočítať hneď len pri prekročení limitu ističa (inak stačí raz za minútu)
         grid = c.get(CONF_GRID_POWER)
-        limit = float(c.get(CONF_GRID_LIMIT_KW) or 0)
+        limit = grid_limit_kw(c)
         if grid and limit > 0:
 
             @callback
@@ -182,8 +178,8 @@ class EvController(DataUpdateCoordinator[dict[str, Any]]):
         else:
             charging = None
 
-        pv_kw, house_kw = _kw(self.hass, c.get(CONF_PV_POWER)), _kw(self.hass, c.get(CONF_HOUSE_POWER))
-        surplus = (pv_kw - house_kw) * 1000 if pv_kw is not None and house_kw is not None else None
+        sk = self.plan.surplus_kw() if c.get(CONF_GRID_POWER) is None else None  # bez elektromera: FVE − dom
+        surplus = sk * 1000 if sk is not None else None
 
         pd = self.plan.data or {}
         p, rec = pd.get("plan"), pd.get("rec")

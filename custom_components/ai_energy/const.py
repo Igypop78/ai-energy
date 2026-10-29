@@ -99,5 +99,67 @@ EV_USE_PV = "auto_fve"  # switch
 EV_USE_SPOT = "auto_spot"  # switch
 EV_CONTROL = "auto_riadenie"  # switch – vypnuté = len odporúča
 
+# --- v0.4: výbava, predaj, spotreba, istič ---
+CONF_HAS_PV = "has_pv"
+CONF_HAS_EV = "has_ev"
+CONF_SELL_MODE = "sell_mode"  # spot / fixed / none
+CONF_SELL_FIXED = "sell_fixed_price"  # €/MWh
+CONF_SELL_BANDS = "sell_band_intervals"
+CONF_SELL_BAND_PRICE = "sell_band_price"  # €/MWh
+CONF_HOUSE_KWH = "house_kwh_day"
+CONF_HOUSE_SENSOR = "house_sensor"  # energia (kWh) alebo výkon (W) – priemer z histórie
+CONF_BREAKER_A = "breaker_a"
+CONF_BREAKER_PHASES = "breaker_phases"
+CONF_BREAKER_RESERVE = "breaker_reserve"  # %
+
+SELL_SPOT = "spot"
+SELL_FIXED = "fixed"
+SELL_NONE = "none"
+DEFAULT_HOUSE_KWH = 15.0
+DEFAULT_BREAKER_RESERVE = 10.0
+VOLTAGE = 230.0
+
+
+def house_kw_estimate(cfg: dict) -> float:
+    """Priemerná spotreba domu v kW z odhadu kWh/deň (staršie nastavenie: priamo kW)."""
+    if cfg.get(CONF_HOUSE_KWH) is not None:
+        return float(cfg[CONF_HOUSE_KWH]) / 24
+    return float(cfg.get(CONF_HOUSE_KW, DEFAULT_HOUSE_KW))
+
+
+def house_sensor(cfg: dict) -> str | None:
+    return cfg.get(CONF_HOUSE_SENSOR) or cfg.get(CONF_HOUSE_POWER)
+
+
+def grid_limit_kw(cfg: dict) -> float:
+    """Limit odberu zo siete: z ističa v A (s rezervou), inak staré nastavenie v kW, 0 = bez limitu."""
+    a = float(cfg.get(CONF_BREAKER_A) or 0)
+    if a > 0:
+        ph = int(cfg.get(CONF_BREAKER_PHASES, 3))
+        res = float(cfg.get(CONF_BREAKER_RESERVE, DEFAULT_BREAKER_RESERVE))
+        return round(a * VOLTAGE * ph * (1 - res / 100) / 1000, 1)
+    return float(cfg.get("grid_limit_kw") or 0)
+
+
+def sell_mode(cfg: dict) -> str:
+    return cfg.get(CONF_SELL_MODE, SELL_SPOT)
+
+
+def effective_sell_fee(cfg: dict) -> float:
+    return float(cfg.get(CONF_SELL_FEE, DEFAULT_SELL_FEE)) if sell_mode(cfg) == SELL_SPOT else 0.0
+
+
+def has_pv(cfg: dict) -> bool:
+    if CONF_HAS_PV in cfg:
+        return bool(cfg[CONF_HAS_PV])
+    return bool(cfg.get(CONF_PV_TODAY) or cfg.get(CONF_PV_POWER))
+
+
+def has_ev(cfg: dict) -> bool:
+    if CONF_HAS_EV in cfg:
+        return bool(cfg[CONF_HAS_EV]) and bool(cfg.get(CONF_EV_SWITCH))
+    return bool(cfg.get(CONF_EV_SWITCH))
+
+
 CARD_NAME = "igy-price-action-card"
 CARD_URL = f"/ai_energy/{CARD_NAME}.js"

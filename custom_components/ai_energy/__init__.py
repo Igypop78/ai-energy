@@ -18,12 +18,10 @@ from .const import (
     CARD_NAME,
     CARD_URL,
     CONF_PRICE_NT,
-    CONF_SELL_FEE,
     DEFAULT_MAX_SOC,
     DEFAULT_MIN_SOC,
     DEFAULT_PRICE_NT,
     DEFAULT_PV_CORRECTION,
-    DEFAULT_SELL_FEE,
     DOMAIN,
     PLATFORMS,
     SET_CHARGE_KW,
@@ -34,6 +32,7 @@ from .const import (
     CONF_CHARGE_KW,
     DEFAULT_CHARGE_KW,
     default_threshold,
+    effective_sell_fee,
 )
 from .coordinator import PriceCoordinator
 from .ev_controller import EvController, default_ev_settings, ev_enabled
@@ -69,7 +68,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 def initial_settings(entry: ConfigEntry) -> dict[str, float]:
     cfg = {**entry.data, **entry.options}
     return {
-        SET_THRESHOLD: float(default_threshold(float(cfg.get(CONF_PRICE_NT, DEFAULT_PRICE_NT)), float(cfg.get(CONF_SELL_FEE, DEFAULT_SELL_FEE)))),
+        SET_THRESHOLD: float(default_threshold(float(cfg.get(CONF_PRICE_NT, DEFAULT_PRICE_NT)), effective_sell_fee(cfg))),
         SET_MIN_SOC: DEFAULT_MIN_SOC,
         SET_MAX_SOC: DEFAULT_MAX_SOC,
         SET_CHARGE_KW: float(cfg.get(CONF_CHARGE_KW, DEFAULT_CHARGE_KW)),

@@ -29,3 +29,13 @@ jobs:
           python-version: "3.13"
       - run: pip install pytest
       - run: pytest -q tests
+
+  tests-ha:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - run: pip install pytest-homeassistant-custom-component
+      - run: python -m pytest -q -p no:cacheprovider tests_ha

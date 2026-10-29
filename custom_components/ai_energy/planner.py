@@ -52,6 +52,11 @@ class PlanConfig:
     nt_intervals: Sequence[tuple[int, int]] = ((1425, 345), (825, 945))  # minúty od polnoci
     pv_correction: float = 0.8
     hysteresis_soc: float = 3.0
+    # predaj: "spot" = spot − poplatok, "fixed" = pevná výkupná cena (voliteľne pásma), "none" = nepredáva
+    sell_mode: str = "spot"
+    sell_fixed: float = 0.0  # €/MWh
+    sell_bands: Sequence[tuple[int, int]] = ()  # pásma s inou výkupnou cenou (minúty od polnoci)
+    sell_band_price: float = 0.0  # €/MWh
 
     @property
     def kwh_slot(self) -> float:
@@ -91,13 +96,42 @@ class Plan:
 # ---------------------------------------------------------------- vstupy
 
 
+NO_SELL = -1e6
+
+
+def sell_price(t: int, spot: float, cfg: PlanConfig, tz: tzinfo | None = None) -> float:
+    """Koľko naozaj dostaneš za 1 MWh predanú v slote t (€/MWh)."""
+    if cfg.sell_mode == "none":
+        return NO_SELL
+    if cfg.sell_mode == "fixed":
+        if cfg.sell_bands and tz is not None:
+            d = datetime.fromtimestamp(t, tz)
+            m = d.hour * 60 + d.minute
+            for a, b in cfg.sell_bands:
+                if (a <= m < b) if a <= b else (m >= a or m < b):
+                    return cfg.sell_band_price
+        return cfg.sell_fixed
+    return spot - cfg.sell_fee
+
+
+def _sell(x: Mapping[str, float], cfg: PlanConfig) -> float:
+    """Čistá predajná cena slotu (zo slotu, alebo spot − poplatok pre staré vstupy)."""
+    return x["s"] if "s" in x else x["p"] - cfg.sell_fee
+
+
+def _cmp(x: Mapping[str, float], cfg: PlanConfig) -> float:
+    """Cena porovnávaná s prahom/hranicou – pri spote v „spotovej“ mierke (ako na karte)."""
+    return _sell(x, cfg) + cfg.sell_fee
+
+
 def build_slots(
     prices: Iterable[Mapping[str, float]],
     pv_forecast: Iterable[tuple[int, float]],
     start_ts: int,
     cfg: PlanConfig,
+    tz: tzinfo | None = None,
 ) -> list[dict[str, float]]:
-    """Ceny od aktuálneho slotu + predpoveď FVE (kWh za slot, s korekciou) a prebytok nad spotrebou domu."""
+    """Ceny od aktuálneho slotu + predaj (s) + predpoveď FVE (kWh za slot, s korekciou) a prebytok nad spotrebou domu."""
     pv = sorted(pv_forecast)
     out = []
     for slot in sorted(prices, key=lambda s: s["t"]):
@@ -110,7 +144,8 @@ def build_slots(
             if t - 1800 < pt <= t:
                 kw = pk
         e_pv = kw * SLOT / 3600 * cfg.pv_correction
-        out.append({"t": t, "p": float(slot["p"]), "pv": e_pv, "pb": max(0.0, e_pv - cfg.house_slot)})
+        p = float(slot["p"])
+        out.append({"t": t, "p": p, "s": sell_price(t, p, cfg, tz), "pv": e_pv, "pb": max(0.0, e_pv - cfg.house_slot)})
     return out
 
 
@@ -131,7 +166,12 @@ def nt_windows(now_ts: int, tz: tzinfo, intervals: Sequence[tuple[int, int]]) ->
 def make_windows(now_ts: int, tz: tzinfo, cfg: PlanConfig) -> list[Window]:
     """Okná medzi NT. Okno začína pri NT – pri dlhom NT až v čase, keď sa z min stihne nabiť na max."""
     t_full = (cfg.max_soc - cfg.min_soc) / 100 * cfg.capacity_kwh / max(cfg.charge_kw, 0.1) * 3600
-    nts = nt_windows(now_ts, tz, cfg.nt_intervals)
+    if cfg.nt_intervals:
+        nts = nt_windows(now_ts, tz, cfg.nt_intervals)
+    else:  # jedna tarifa: okná po dňoch od polnoci, bez nabíjania zo siete
+        day0 = datetime.fromtimestamp(now_ts, tz).date()
+        mid = [int(datetime.combine(day0 + timedelta(days=d), time(0), tz).timestamp()) for d in range(-1, 4)]
+        nts = [(m, m) for m in mid]
     starts = [max(s, e - t_full) for s, e in nts]
     wins = []
     for i in range(len(nts) - 1):
@@ -166,11 +206,11 @@ def plan(
     for w in windows:
         start = max(w.od, slot0)
         psl = [x for x in slots if start <= x["t"] < w.do]
-        nad = [x for x in psl if x["p"] >= cfg.threshold]
+        nad = [x for x in psl if _cmp(x, cfg) >= cfg.threshold]
         pb_spolu = sum(x["pb"] for x in psl)
         kum = maxk = 0.0
         for y in psl:
-            kum = max(kum - y["pb"] + (kwh_slot if y["p"] >= cfg.threshold else 0.0), -(100 - cfg.min_soc) / 100 * kap)
+            kum = max(kum - y["pb"] + (kwh_slot if _cmp(y, cfg) >= cfg.threshold else 0.0), -(100 - cfg.min_soc) / 100 * kap)
             maxk = max(maxk, kum)
         w.ciel = min(cfg.max_soc, cfg.min_soc + maxk / kap * 100) if psl else cfg.max_soc
         e_ciel = (w.ciel - cfg.min_soc) / 100 * kap
@@ -184,11 +224,11 @@ def plan(
             e0 = max(0.0, carry)
             e = max(e0, min(e_ciel, e0 + nt_h * cfg.charge_kw)) + pb_spolu
         n = math.ceil(e / kwh_slot - 1e-9) if e > 0 else 0
-        top = sorted(nad, key=lambda x: -x["p"])[:n]
+        top = sorted(nad, key=lambda x: -_sell(x, cfg))[:n]
         top_t = {int(x["t"]) for x in top}
         extra = {int(x["t"]) for x in nad if w.nt2 and x["t"] >= w.nt2} - top_t
         w.predaj = top_t | extra
-        w.hranica = top[-1]["p"] if top else 0.0
+        w.hranica = _cmp(top[-1], cfg) if top else 0.0
         w.fve_kwh = sum(x["pv"] for x in psl)
         vt_od = max(start, w.nt_do)
         vt_do = w.nt2 if w.nt2 else w.do
@@ -220,11 +260,11 @@ def plan(
             export = min(kwh_slot, z_bat + x["pv"] - hs)
             s -= z_bat / kap * 100
             out.predaj_kwh += export
-            out.trzba += (x["p"] - cfg.sell_fee) * export / 1000
+            out.trzba += _sell(x, cfg) * export / 1000
         elif t in pool.predaj and not je_nt and x["pb"] >= 0.25:
             akcia = "E"
             out.predaj_kwh += x["pb"]
-            out.trzba += (x["p"] - cfg.sell_fee) * x["pb"] / 1000
+            out.trzba += _sell(x, cfg) * x["pb"] / 1000
         elif je_nt and s < ciel:
             akcia = "N"
             kwh = min(cfg.charge_kw * SLOT / 3600 + x["pb"], (ciel - s) / 100 * kap)
@@ -240,8 +280,8 @@ def plan(
                 pretok = net - nabite
                 s += nabite / kap * 100
                 out.predaj_kwh += pretok
-                if x["p"] > cfg.sell_fee:
-                    out.trzba += (x["p"] - cfg.sell_fee) * pretok / 1000
+                if _sell(x, cfg) > 0:
+                    out.trzba += _sell(x, cfg) * pretok / 1000
                 akcia = "F" if nabite >= 0.1 else ("O" if pretok >= 0.1 else "D")
             else:
                 akcia = "D"
@@ -294,7 +334,7 @@ def recommend(
     ntw = next((w for w in p.okna if w.nt_od <= slot0 < w.nt_do), None)
     je_nt = ntw is not None
     cur = next((x for x in slots if x["t"] == slot0), None)
-    cena = price_now if price_now is not None else (cur["p"] if cur else None)
+    cena = price_now if price_now is not None else (_cmp(cur, cfg) if cur else None)
     c = f"{cena:.0f}" if cena is not None else "?"
     s_txt = f"{soc:.0f} %"
     if pool is None:
@@ -327,7 +367,9 @@ def recommend(
         return Recommendation(MODE_SELL_PV, f"Predaj len z FVE {prebytok:.1f} kW za {c} € – batéria na minime ({s_txt}), nevybíja sa", pool)
     if nabijat:
         return Recommendation(MODE_CHARGE, f"NT nabíjanie: SOC {s_txt} → {ciel:.0f} %", pool)
-    if cena is not None and cena <= cfg.sell_fee and pv_kw > 0.5:
+    if cfg.sell_mode == "none" and pv_kw > 0.5:
+        return Recommendation(MODE_NO_EXPORT, "Predaj vypnutý – bez pretokov", pool)
+    if cur is not None and _sell(cur, cfg) <= 0 and pv_kw > 0.5:
         return Recommendation(MODE_NO_EXPORT, f"Cena {c} € ≤ {cfg.sell_fee:.0f} € – predaj by bol v strate, bez pretokov", pool)
     if je_nt:
         return Recommendation(MODE_GRID, f"NT: SOC {s_txt} ≥ cieľ {ciel:.0f} % – dom zo siete, batéria sa šetrí", pool)
