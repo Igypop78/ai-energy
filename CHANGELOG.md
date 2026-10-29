@@ -2,6 +2,11 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.4.1] – 2026-10-29
+
+### Opravené
+- Nedokončený (zavretý) sprievodca už neblokuje spustenie nového („This is already being configured“).
+
 ## [0.4.0] – 2026-10-29
 
 ### Pridané

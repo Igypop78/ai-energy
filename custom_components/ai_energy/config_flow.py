@@ -503,7 +503,7 @@ class AiEnergyConfigFlow(_StepsMixin, ConfigFlow, domain=DOMAIN):
         self._data = {}
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        await self.async_set_unique_id(DOMAIN)
+        await self.async_set_unique_id(DOMAIN, raise_on_progress=False)  # nedokončený sprievodca neblokuje nový
         self._abort_if_unique_id_configured()
         return await self.async_step_vitaj()
 
