@@ -2,6 +2,15 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.3.1] – 2026-10-29
+
+### Pridané
+- Ikona integrácie (`brand/icon.png`) – zobrazí sa od Home Assistant 2026.3.
+
+### Zmenené
+- Nabíjanie auta: pri prepínači typu select sa možnosti „nabíjaj“ / „vypni“ predvyplnia už vo formulári
+  (SmartEVSE: Normal / Off).
+
 ## [0.3.0] – 2026-10-29
 
 ### Pridané

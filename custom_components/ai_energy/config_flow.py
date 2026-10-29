@@ -194,13 +194,17 @@ def _guess_ev(hass: HomeAssistant) -> dict[str, str | None]:
 
 
 def _ev_schema(hass: HomeAssistant, cfg: dict[str, Any], guess: bool) -> vol.Schema:
-    g = _guess_ev(hass) if guess and not cfg.get(CONF_EV_SWITCH) else {}
+    g: dict[str, str | None] = _guess_ev(hass) if guess and not cfg.get(CONF_EV_SWITCH) else {}
     v = lambda k: cfg.get(k) or g.get(k)  # noqa: E731
+    sw = v(CONF_EV_SWITCH) or ""
+    if sw.split(".")[0] in ("select", "input_select"):
+        on, off = _guess_options(_select_options(hass, sw))
+        g[CONF_EV_ON_OPTION], g[CONF_EV_OFF_OPTION] = on or None, off or None
     return vol.Schema(
         {
             _opt(CONF_EV_SWITCH, v(CONF_EV_SWITCH)): EV_SWITCH_SELECTOR,
-            _opt(CONF_EV_ON_OPTION, cfg.get(CONF_EV_ON_OPTION)): selector.TextSelector(),
-            _opt(CONF_EV_OFF_OPTION, cfg.get(CONF_EV_OFF_OPTION)): selector.TextSelector(),
+            _opt(CONF_EV_ON_OPTION, v(CONF_EV_ON_OPTION)): selector.TextSelector(),
+            _opt(CONF_EV_OFF_OPTION, v(CONF_EV_OFF_OPTION)): selector.TextSelector(),
             _opt(CONF_EV_CURRENT, v(CONF_EV_CURRENT)): EV_CURRENT_SELECTOR,
             vol.Required(CONF_EV_PHASES, default=str(cfg.get(CONF_EV_PHASES, DEFAULT_EV_PHASES))): PHASES_SELECTOR,
             vol.Required(CONF_EV_MIN_A, default=cfg.get(CONF_EV_MIN_A, DEFAULT_EV_MIN_A)): _num(1, 32, 1, "A"),
@@ -221,6 +225,14 @@ def _select_options(hass: HomeAssistant, entity_id: str) -> list[str]:
     return list(st.attributes.get("options", [])) if st else []
 
 
+def _guess_options(opts: list[str]) -> tuple[str, str]:
+    """Možnosti selectu pre „nabíjaj“ a „vypni“ (SmartEVSE: Normal / Off)."""
+    low = {o.lower(): o for o in opts}
+    off = next((o for o in opts if o.lower() in ("off", "vypnuté", "vypnute", "stop", "disabled")), "")
+    on = low.get("normal") or next((o for o in opts if o.lower() in ("on", "charge", "charging", "start", "enabled", "zapnuté", "now")), "")
+    return on, off
+
+
 def _check_ev(hass: HomeAssistant, data: dict[str, Any]) -> tuple[dict[str, str], dict[str, str]]:
     """Kontrola a doplnenie možností pre select. Vráti (chyby, placeholdery)."""
     sw = data.get(CONF_EV_SWITCH)
@@ -235,13 +247,11 @@ def _check_ev(hass: HomeAssistant, data: dict[str, Any]) -> tuple[dict[str, str]
         return {CONF_EV_MAX_A: "ev_min_max"}, {}
     if sw.split(".")[0] in ("select", "input_select"):
         opts = _select_options(hass, sw)
-        low = {o.lower(): o for o in opts}
+        on, off = _guess_options(opts)
         if not data.get(CONF_EV_OFF_OPTION):
-            data[CONF_EV_OFF_OPTION] = next((o for o in opts if o.lower() in ("off", "vypnuté", "vypnute", "stop", "disabled")), "")
+            data[CONF_EV_OFF_OPTION] = off
         if not data.get(CONF_EV_ON_OPTION):
-            data[CONF_EV_ON_OPTION] = low.get("normal") or next(
-                (o for o in opts if o.lower() in ("on", "charge", "charging", "start", "enabled", "zapnuté", "now")), ""
-            )
+            data[CONF_EV_ON_OPTION] = on
         bad = [k for k in (CONF_EV_ON_OPTION, CONF_EV_OFF_OPTION) if data.get(k) not in opts]
         if bad:
             return {bad[0]: "ev_option"}, {"options": "\n\n`" + "`, `".join(opts) + "`"}
