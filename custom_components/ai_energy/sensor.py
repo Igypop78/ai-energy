@@ -17,6 +17,7 @@ from . import AiEnergyConfigEntry
 from .const import CONF_SOC_ENTITY, DOMAIN, SLOT_SECONDS
 from .coordinator import PriceCoordinator
 from .entity import device_info
+from .ev_controller import EvController
 from .plan_coordinator import PlanCoordinator
 from .planner import MODE_CHARGE, MODE_GRID, MODE_NO_EXPORT, MODE_NORMAL, MODE_SELL, MODE_SELL_PV
 from .prices import price_at
@@ -39,6 +40,8 @@ async def async_setup_entry(
             TargetSocSensor(d.plan, entry),
         ]
     )
+    if d.ev:
+        async_add_entities([EvReasonSensor(d.ev, entry)])
 
 
 class _Base(CoordinatorEntity, SensorEntity):
@@ -59,7 +62,7 @@ class _Base(CoordinatorEntity, SensorEntity):
 class PricesSensor(_Base):
     """Stav = počet uložených 15-min slotov (96 = dnes, 192 = dnes + zajtra).
 
-    Atribút `ceny` = [{t: unix s, p: €/MWh}, …] – formát, ktorý číta Home Price Card.
+    Atribút `ceny` = [{t: unix s, p: €/MWh}, …] – formát, ktorý číta Igy Price Action Card.
     """
 
     coordinator: PriceCoordinator
@@ -228,3 +231,34 @@ class TargetSocSensor(_Base):
         now = dt_util.utcnow().timestamp()
         nxt = next((w for w in p.okna if w.nt_do > now), None)
         return round(nxt.ciel) if nxt else None
+
+
+# ------------------------------------------------------------------ auto
+
+
+class EvReasonSensor(_Base):
+    """Čo robí nabíjanie auta a prečo. Atribúty: zapnúť, prúd, zdroj (nt/fve/spot/rucne), riadenie."""
+
+    coordinator: EvController
+    _attr_icon = "mdi:car-electric"
+
+    def __init__(self, coordinator: EvController, entry: AiEnergyConfigEntry) -> None:
+        super().__init__(coordinator, entry, "auto_dovod")
+
+    @property
+    def native_value(self) -> str | None:
+        d = self.coordinator.data or {}
+        return (d.get("dovod") or "")[:255] or None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        d = self.coordinator.data or {}
+        return {
+            "nabijat": d.get("on"),
+            "prud": d.get("amps"),
+            "zdroj": d.get("zdroj"),
+            "riadenie": d.get("riadenie"),
+            "pripojene": d.get("pripojene"),
+            "nabija": d.get("nabija"),
+            "chyba": d.get("chyba"),
+        }

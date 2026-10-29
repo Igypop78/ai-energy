@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 DOMAIN = "ai_energy"
-PLATFORMS = ["sensor", "binary_sensor", "number"]
+PLATFORMS = ["sensor", "binary_sensor", "number", "select", "switch", "time"]
 
 STORAGE_VERSION = 1
 STORAGE_KEY = f"{DOMAIN}.ceny"
@@ -67,4 +67,37 @@ def default_threshold(price_nt: float, sell_fee: float) -> float:
     return round(sell_fee + price_nt / CHARGE_EFFICIENCY + WEAR_EUR_MWH + MARGIN_EUR_MWH)
 
 
-CARD_URL = "/ai_energy/home-price-card.js"
+# --- konfigurácia: nabíjanie auta (v0.3) ---
+CONF_EV_CURRENT = "ev_current_entity"  # number – nabíjací prúd v A
+CONF_EV_SWITCH = "ev_switch_entity"  # switch / input_boolean / select – zapnutie nabíjania
+CONF_EV_ON_OPTION = "ev_on_option"  # pri select: možnosť „nabíjaj“
+CONF_EV_OFF_OPTION = "ev_off_option"  # pri select: možnosť „nenabíjaj“
+CONF_EV_PLUG = "ev_plug_entity"  # voliteľné – je auto pripojené
+CONF_EV_CHARGING = "ev_charging_entity"  # voliteľné – nabíja práve teraz
+CONF_EV_POWER = "ev_power_entity"  # voliteľné – výkon nabíjačky
+CONF_EV_PHASES = "ev_phases"
+CONF_EV_MIN_A = "ev_min_a"
+CONF_EV_MAX_A = "ev_max_a"
+CONF_GRID_POWER = "grid_power_entity"  # voliteľné – odber zo siete (+) / dodávka (−)
+CONF_GRID_INVERT = "grid_invert"
+CONF_GRID_LIMIT_KW = "grid_limit_kw"  # 0 = bez limitu
+CONF_CABLE_KW = "cable_kw"  # spoločný limit batérie + auta, 0 = bez limitu
+
+DEFAULT_EV_PHASES = 3
+DEFAULT_EV_MIN_A = 6
+DEFAULT_EV_MAX_A = 16
+DEFAULT_GRID_LIMIT_KW = 0.0
+DEFAULT_CABLE_KW = 0.0
+
+# nastavenia auta ako entity
+EV_MODE = "auto_rezim"  # select
+EV_TIME = "auto_cas"  # time
+EV_MANUAL_A = "auto_prud"  # number – prúd pre ručné režimy
+EV_SPOT_LIMIT = "auto_spot_cena"  # number
+EV_USE_NT = "auto_nt"  # switch
+EV_USE_PV = "auto_fve"  # switch
+EV_USE_SPOT = "auto_spot"  # switch
+EV_CONTROL = "auto_riadenie"  # switch – vypnuté = len odporúča
+
+CARD_NAME = "igy-price-action-card"
+CARD_URL = f"/ai_energy/{CARD_NAME}.js"

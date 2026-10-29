@@ -50,12 +50,46 @@
           "pv_forecast_today": "Optional – e.g. Solcast (detailedForecast attribute).",
           "pv_power_entity": "Optional – refines the PV-only selling decision."
         }
+      },
+      "auto": {
+        "title": "EV charging",
+        "description": "Optional – if you have no EV, leave **Charging switch** empty.\n\nFor a *select* switch fill in the options for charging and off (SmartEVSE is filled automatically: Normal / Off).{options}",
+        "data": {
+          "ev_switch_entity": "Charging switch",
+          "ev_on_option": "\"Charge\" option (select)",
+          "ev_off_option": "\"Off\" option (select)",
+          "ev_current_entity": "Charging current",
+          "ev_phases": "Phases",
+          "ev_min_a": "Minimum current",
+          "ev_max_a": "Maximum current",
+          "ev_plug_entity": "EV connected (state)",
+          "ev_charging_entity": "EV charging (state)",
+          "ev_power_entity": "Charger power (measured)",
+          "grid_power_entity": "Grid power (measured)",
+          "grid_invert": "Grid import is negative",
+          "grid_limit_kw": "Grid import limit (main breaker)",
+          "cable_kw": "Shared battery + EV limit"
+        },
+        "data_description": {
+          "ev_switch_entity": "switch, input_boolean or select of the charger (e.g. select.smartevse_mode).",
+          "ev_current_entity": "number with current in A. Without it the charger is only switched on/off.",
+          "ev_plug_entity": "Optional – e.g. sensor.smartevse_evplugstate (Connected).",
+          "ev_charging_entity": "Optional – e.g. sensor.smartevse_state (Charging). Needed to detect a full battery in the Start time mode.",
+          "ev_power_entity": "Optional – more precise than the estimate from current.",
+          "grid_power_entity": "Optional but recommended – power at the main meter. Used for PV surplus and breaker protection.",
+          "grid_invert": "Enable if your sensor shows grid import as a negative value.",
+          "grid_limit_kw": "Total grid import will stay below this value (e.g. 14.5). 0 = no limit.",
+          "cable_kw": "If battery and wallbox share one cable/breaker (e.g. 12). Battery has priority. 0 = no limit."
+        }
       }
     },
     "error": {
       "entity_not_found": "Entity not found.",
       "no_prices": "No prices found in this sensor's attributes.",
-      "invalid_intervals": "Invalid hours – use HH:MM-HH:MM separated by comma."
+      "invalid_intervals": "Invalid hours – use HH:MM-HH:MM separated by comma.",
+      "ev_switch_required": "Select the charging switch too.",
+      "ev_min_max": "Minimum current is higher than maximum.",
+      "ev_option": "Enter an option the select knows: {options}"
     },
     "abort": {
       "already_configured": "AI Energy is already configured."
@@ -65,13 +99,26 @@
     "step": {
       "init": {
         "title": "AI Energy settings",
+        "menu_options": {
+          "ceny": "Prices and tariff",
+          "bateria": "Battery and PV",
+          "auto": "EV charging"
+        }
+      },
+      "ceny": {
+        "title": "Prices and tariff",
         "data": {
           "price_today": "Prices today",
           "price_tomorrow": "Prices tomorrow",
           "nt_intervals": "Low tariff hours",
           "price_nt": "Low tariff price",
           "price_vt": "High tariff price",
-          "sell_fee": "Selling fee",
+          "sell_fee": "Selling fee"
+        }
+      },
+      "bateria": {
+        "title": "Battery and PV",
+        "data": {
           "soc_entity": "Battery SOC",
           "capacity_kwh": "Battery capacity",
           "charge_kw": "Grid charging power",
@@ -81,13 +128,56 @@
           "pv_forecast_tomorrow": "PV forecast tomorrow",
           "pv_power_entity": "PV power (measured)",
           "house_power_entity": "House consumption (measured)"
+        },
+        "data_description": {
+          "soc_entity": "Sensor with battery state of charge in %.",
+          "capacity_kwh": "Usable capacity.",
+          "charge_kw": "Power at which the inverter charges the battery from the grid.",
+          "export_kw": "Power at which the inverter exports from the battery.",
+          "house_kw": "Used in the plan to estimate consumption.",
+          "pv_forecast_today": "Optional – e.g. Solcast (detailedForecast attribute).",
+          "pv_power_entity": "Optional – refines the PV-only selling decision."
+        }
+      },
+      "auto": {
+        "title": "EV charging",
+        "description": "Optional – if you have no EV, leave **Charging switch** empty.\n\nFor a *select* switch fill in the options for charging and off (SmartEVSE is filled automatically: Normal / Off).{options}",
+        "data": {
+          "ev_switch_entity": "Charging switch",
+          "ev_on_option": "\"Charge\" option (select)",
+          "ev_off_option": "\"Off\" option (select)",
+          "ev_current_entity": "Charging current",
+          "ev_phases": "Phases",
+          "ev_min_a": "Minimum current",
+          "ev_max_a": "Maximum current",
+          "ev_plug_entity": "EV connected (state)",
+          "ev_charging_entity": "EV charging (state)",
+          "ev_power_entity": "Charger power (measured)",
+          "grid_power_entity": "Grid power (measured)",
+          "grid_invert": "Grid import is negative",
+          "grid_limit_kw": "Grid import limit (main breaker)",
+          "cable_kw": "Shared battery + EV limit"
+        },
+        "data_description": {
+          "ev_switch_entity": "switch, input_boolean or select of the charger (e.g. select.smartevse_mode).",
+          "ev_current_entity": "number with current in A. Without it the charger is only switched on/off.",
+          "ev_plug_entity": "Optional – e.g. sensor.smartevse_evplugstate (Connected).",
+          "ev_charging_entity": "Optional – e.g. sensor.smartevse_state (Charging). Needed to detect a full battery in the Start time mode.",
+          "ev_power_entity": "Optional – more precise than the estimate from current.",
+          "grid_power_entity": "Optional but recommended – power at the main meter. Used for PV surplus and breaker protection.",
+          "grid_invert": "Enable if your sensor shows grid import as a negative value.",
+          "grid_limit_kw": "Total grid import will stay below this value (e.g. 14.5). 0 = no limit.",
+          "cable_kw": "If battery and wallbox share one cable/breaker (e.g. 12). Battery has priority. 0 = no limit."
         }
       }
     },
     "error": {
       "entity_not_found": "Entity not found.",
       "no_prices": "No prices found in this sensor's attributes.",
-      "invalid_intervals": "Invalid hours – use HH:MM-HH:MM separated by comma."
+      "invalid_intervals": "Invalid hours – use HH:MM-HH:MM separated by comma.",
+      "ev_switch_required": "Select the charging switch too.",
+      "ev_min_max": "Minimum current is higher than maximum.",
+      "ev_option": "Enter an option the select knows: {options}"
     }
   },
   "entity": {
@@ -120,6 +210,9 @@
       },
       "ciel_nt": {
         "name": "Low-tariff charge target"
+      },
+      "auto_dovod": {
+        "name": "EV reason"
       }
     },
     "binary_sensor": {
@@ -142,6 +235,50 @@
       },
       "korekcia_fve": {
         "name": "PV forecast correction"
+      },
+      "auto_prud": {
+        "name": "EV current (manual modes)"
+      },
+      "auto_spot_cena": {
+        "name": "EV AI – cheap spot up to"
+      }
+    },
+    "select": {
+      "auto_rezim": {
+        "name": "EV charging",
+        "state": {
+          "off": "Off",
+          "now": "Charge now",
+          "time": "Charge from time",
+          "ai": "AI"
+        }
+      }
+    },
+    "time": {
+      "auto_cas": {
+        "name": "EV start time"
+      }
+    },
+    "switch": {
+      "auto_riadenie": {
+        "name": "EV control"
+      },
+      "auto_nt": {
+        "name": "EV AI – charge in low tariff"
+      },
+      "auto_fve": {
+        "name": "EV AI – PV surplus"
+      },
+      "auto_spot": {
+        "name": "EV AI – cheap spot"
+      }
+    }
+  },
+  "selector": {
+    "ev_phases": {
+      "options": {
+        "1": "1 phase",
+        "3": "3 phases"
       }
     }
   }

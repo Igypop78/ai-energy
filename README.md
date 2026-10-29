@@ -4,8 +4,8 @@ Integrácia pre [Home Assistant](https://www.home-assistant.io/), ktorá plánuj
 podľa spotových cien elektriny (OKTE a ďalšie) a dvojtarifného nákupu – s dôrazom na to, aby si **vždy videl,
 čo sa deje a prečo**.
 
-> ⚠️ **Vo vývoji (v0.2).** Integrácia zatiaľ **len odporúča** – vypočíta plán a odporúčaný režim,
-> ale nič neprepína. Riadenie meniča pribudne v ďalšej verzii.
+> ⚠️ **Vo vývoji (v0.3).** Batériu zatiaľ **len odporúča** (riadenie meniča pribudne neskôr).
+> **Nabíjanie auta už vie riadiť** – po zapnutí prepínača *Auto – riadenie*.
 
 ## Čo vie
 
@@ -40,10 +40,36 @@ min SOC, max SOC nabíjania zo siete, nabíjací výkon, korekcia predpovede FVE
 - Z batérie sa **nikdy nepredáva pod min SOC**. Keď je batéria na minime a svieti slnko, predáva sa **len FVE**.
 - Predvolená **min. predajná cena** = poplatok za predaj + cena NT so stratami + opotrebenie (45 €/MWh) + zisk (40 €/MWh).
 
-### Karta Home Price Card
+**Nabíjanie auta** (voliteľné, 4. krok sprievodcu)
 
-Karta sa nainštaluje **spolu s integráciou**. Na dashboarde: **Pridať kartu → Home Price Card**
+| Entita | Popis |
+|---|---|
+| `select.ai_energy_auto_rezim` | **Vypnuté** / **Nabíjať hneď** / **Nabíjať od času** / **AI**. |
+| `time.ai_energy_auto_cas` | Kedy začať v režime *Nabíjať od času*. |
+| `number.ai_energy_auto_prud` | Prúd pre ručné režimy (Nabíjať hneď, od času). |
+| `switch.ai_energy_auto_riadenie` | **Vypnuté = len odporúča** (nič neprepína), zapnuté = nastavuje nabíjačku. |
+| `sensor.ai_energy_auto_dovod` | Čo nabíjanie robí a prečo, napr. *„AI: prebytok FVE 5.2 kW – 7 A (4.8 kW)“*. |
+| `switch.ai_energy_auto_nt` / `_fve` / `_spot`, `number.ai_energy_auto_spot_cena` | Z čoho smie nabíjať režim AI. |
+
+Režimy:
+
+- **Nabíjať hneď** – nabíja nastaveným prúdom.
+- **Nabíjať od času** – v nastavený čas začne; po dobití (10 min bez nabíjania) alebo odpojení auta skončí.
+- **AI** – nabíja
+  - v **nízkej tarife** plným prúdom, ktorý dovolí istič (a spoločný kábel s batériou – batéria má prednosť),
+  - z **prebytku FVE** – prúd sa prispôsobuje prebytku; zapne sa, keď prebytok vydrží 2 min, vypne, keď 3 min chýba;
+    nepoužije sa, keď plán batérie práve predáva (vtedy je predaj výhodnejší),
+  - pri **lacnom spote** (voliteľné, predvolene vypnuté) – keď je spotová cena nižšia ako nastavená hranica.
+    Má zmysel pri nákupe za spotovú cenu; pri pevnej tarife (napr. ZSE DD3) platíš aj tak NT/VT.
+
+Funguje s nabíjačkami, ktoré majú v HA prepínač (switch alebo select) a voliteľne prúd (number).
+SmartEVSE sa predvyplní sám (`select.smartevse_mode` Normal/Off, `number.smartevse_chargecurrentoverride`).
+
+### Karta Igy Price Action Card
+
+Karta sa nainštaluje **spolu s integráciou**. Na dashboarde: **Pridať kartu → Igy Price Action Card**
 – entity sa doplnia samé. Ukazuje ceny, predajnú hranicu a plán batérie ako časovú os.
+(Staršie dashboardy s `type: custom:home-price-card` fungujú ďalej.)
 
 ## Inštalácia cez HACS
 
@@ -54,7 +80,7 @@ Karta sa nainštaluje **spolu s integráciou**. Na dashboarde: **Pridať kartu �
 
 ## Nastavenie
 
-Sprievodca má tri kroky:
+Sprievodca má štyri kroky:
 
 1. **Spotové ceny** – senzor s dnešnými cenami (povinný) a so zajtrajšími (voliteľný).
    Integrácia OKTE sa nájde automaticky.
@@ -66,16 +92,18 @@ Sprievodca má tri kroky:
 
 3. **Batéria a FVE** – senzor SOC, kapacita, výkon nabíjania zo siete a predaja,
    voliteľne predpoveď FVE (Solcast) a merania výkonu FVE a spotreby.
+4. **Nabíjanie auta** – voliteľné. Prepínač nabíjačky, prúd, fázy, min/max prúd, stav auta,
+   meranie odberu zo siete (odporúčané – prebytky FVE a istič) a limity ističa / spoločného kábla.
 
-Všetko sa dá neskôr zmeniť: **Nastavenia → Zariadenia a služby → AI Energy → Konfigurovať**.
+Všetko sa dá neskôr zmeniť: **Nastavenia → Zariadenia a služby → AI Energy → Konfigurovať** (ceny a tarifa / batéria a FVE / nabíjanie auta).
 
 ## Plán vývoja
 
 - [x] Záloha cien, aktuálna cena, nízka tarifa
 - [x] Plánovač batérie (predaj v najdrahších slotoch, nabíjanie v NT, predpoveď FVE)
-- [x] Karta s cenami a plánom (Home Price Card) – inštaluje sa spolu s integráciou
-- [ ] Riadenie meniča (Deye / Solarman), suchý beh a ručný override
-- [ ] Nabíjanie auta (SmartEVSE), limity ističa
+- [x] Karta s cenami a plánom (Igy Price Action Card) – inštaluje sa spolu s integráciou
+- [x] Nabíjanie auta (NT, prebytky FVE, lacný spot, od času), limity ističa a kábla
+- [ ] Riadenie meniča (skripty + blueprint pre Deye / Solarman), ručný override
 - [ ] Ďalšie meniče a tarify
 
 ## Vyskúšanie bez batérie (testovacia inštalácia)

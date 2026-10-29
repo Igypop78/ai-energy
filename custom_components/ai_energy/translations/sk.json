@@ -50,12 +50,46 @@
           "pv_forecast_today": "Voliteľné – napr. Solcast (atribút detailedForecast).",
           "pv_power_entity": "Voliteľné – spresní rozhodovanie o predaji len z FVE."
         }
+      },
+      "auto": {
+        "title": "Nabíjanie auta",
+        "description": "Voliteľné – ak auto nemáš, nechaj **Zapnutie nabíjania** prázdne.\n\nPri prepínači typu *select* doplň možnosti pre nabíjanie a vypnutie (pri SmartEVSE sa doplnia samé: Normal / Off).{options}",
+        "data": {
+          "ev_switch_entity": "Zapnutie nabíjania",
+          "ev_on_option": "Možnosť „nabíjaj“ (pri select)",
+          "ev_off_option": "Možnosť „vypni“ (pri select)",
+          "ev_current_entity": "Nabíjací prúd",
+          "ev_phases": "Počet fáz",
+          "ev_min_a": "Minimálny prúd",
+          "ev_max_a": "Maximálny prúd",
+          "ev_plug_entity": "Auto pripojené (stav)",
+          "ev_charging_entity": "Auto nabíja (stav)",
+          "ev_power_entity": "Výkon nabíjačky (meranie)",
+          "grid_power_entity": "Odber zo siete (meranie)",
+          "grid_invert": "Odber zo siete je záporný",
+          "grid_limit_kw": "Limit odberu zo siete (istič)",
+          "cable_kw": "Spoločný limit batérie a auta"
+        },
+        "data_description": {
+          "ev_switch_entity": "switch, input_boolean alebo select nabíjačky (napr. select.smartevse_mode).",
+          "ev_current_entity": "number s prúdom v A (napr. number.smartevse_chargecurrentoverride). Bez neho sa len zapína/vypína.",
+          "ev_plug_entity": "Voliteľné – napr. sensor.smartevse_evplugstate (Connected).",
+          "ev_charging_entity": "Voliteľné – napr. sensor.smartevse_state (Charging). Potrebné na rozpoznanie dobitia v režime Od času.",
+          "ev_power_entity": "Voliteľné – presnejšie než odhad z prúdu.",
+          "grid_power_entity": "Voliteľné, ale odporúčané – výkon na hlavnom elektromeri. Používa sa na prebytky FVE a strážanie ističa.",
+          "grid_invert": "Zapni, ak tvoj senzor ukazuje odber zo siete ako zápornú hodnotu.",
+          "grid_limit_kw": "Celkový odber domu zo siete neprekročí túto hodnotu (napr. 14,5). 0 = bez limitu.",
+          "cable_kw": "Ak batéria a wallbox idú cez spoločný kábel/istič (napr. 12). Batéria má prednosť. 0 = bez limitu."
+        }
       }
     },
     "error": {
       "entity_not_found": "Entita neexistuje.",
       "no_prices": "V atribútoch senzora sa nenašli ceny.",
-      "invalid_intervals": "Neplatné časy – použi HH:MM-HH:MM oddelené čiarkou."
+      "invalid_intervals": "Neplatné časy – použi HH:MM-HH:MM oddelené čiarkou.",
+      "ev_switch_required": "Vyber aj entitu na zapnutie nabíjania.",
+      "ev_min_max": "Minimálny prúd je väčší než maximálny.",
+      "ev_option": "Zadaj možnosť, ktorú select pozná: {options}"
     },
     "abort": {
       "already_configured": "AI Energy je už nastavená."
@@ -65,13 +99,26 @@
     "step": {
       "init": {
         "title": "Nastavenia AI Energy",
+        "menu_options": {
+          "ceny": "Ceny a tarifa",
+          "bateria": "Batéria a FVE",
+          "auto": "Nabíjanie auta"
+        }
+      },
+      "ceny": {
+        "title": "Ceny a tarifa",
         "data": {
           "price_today": "Ceny dnes",
           "price_tomorrow": "Ceny zajtra",
           "nt_intervals": "Časy nízkej tarify",
           "price_nt": "Cena v NT",
           "price_vt": "Cena vo VT",
-          "sell_fee": "Poplatok za predaj",
+          "sell_fee": "Poplatok za predaj"
+        }
+      },
+      "bateria": {
+        "title": "Batéria a FVE",
+        "data": {
           "soc_entity": "SOC batérie",
           "capacity_kwh": "Kapacita batérie",
           "charge_kw": "Nabíjanie zo siete (výkon)",
@@ -81,13 +128,56 @@
           "pv_forecast_tomorrow": "Predpoveď FVE zajtra",
           "pv_power_entity": "Výkon FVE (meranie)",
           "house_power_entity": "Spotreba domu (meranie)"
+        },
+        "data_description": {
+          "soc_entity": "Senzor so stavom nabitia batérie v %.",
+          "capacity_kwh": "Využiteľná kapacita.",
+          "charge_kw": "Akým výkonom menič nabíja batériu zo siete.",
+          "export_kw": "Akým výkonom menič predáva z batérie do siete.",
+          "house_kw": "Používa sa v pláne na odhad spotreby.",
+          "pv_forecast_today": "Voliteľné – napr. Solcast (atribút detailedForecast).",
+          "pv_power_entity": "Voliteľné – spresní rozhodovanie o predaji len z FVE."
+        }
+      },
+      "auto": {
+        "title": "Nabíjanie auta",
+        "description": "Voliteľné – ak auto nemáš, nechaj **Zapnutie nabíjania** prázdne.\n\nPri prepínači typu *select* doplň možnosti pre nabíjanie a vypnutie (pri SmartEVSE sa doplnia samé: Normal / Off).{options}",
+        "data": {
+          "ev_switch_entity": "Zapnutie nabíjania",
+          "ev_on_option": "Možnosť „nabíjaj“ (pri select)",
+          "ev_off_option": "Možnosť „vypni“ (pri select)",
+          "ev_current_entity": "Nabíjací prúd",
+          "ev_phases": "Počet fáz",
+          "ev_min_a": "Minimálny prúd",
+          "ev_max_a": "Maximálny prúd",
+          "ev_plug_entity": "Auto pripojené (stav)",
+          "ev_charging_entity": "Auto nabíja (stav)",
+          "ev_power_entity": "Výkon nabíjačky (meranie)",
+          "grid_power_entity": "Odber zo siete (meranie)",
+          "grid_invert": "Odber zo siete je záporný",
+          "grid_limit_kw": "Limit odberu zo siete (istič)",
+          "cable_kw": "Spoločný limit batérie a auta"
+        },
+        "data_description": {
+          "ev_switch_entity": "switch, input_boolean alebo select nabíjačky (napr. select.smartevse_mode).",
+          "ev_current_entity": "number s prúdom v A (napr. number.smartevse_chargecurrentoverride). Bez neho sa len zapína/vypína.",
+          "ev_plug_entity": "Voliteľné – napr. sensor.smartevse_evplugstate (Connected).",
+          "ev_charging_entity": "Voliteľné – napr. sensor.smartevse_state (Charging). Potrebné na rozpoznanie dobitia v režime Od času.",
+          "ev_power_entity": "Voliteľné – presnejšie než odhad z prúdu.",
+          "grid_power_entity": "Voliteľné, ale odporúčané – výkon na hlavnom elektromeri. Používa sa na prebytky FVE a strážanie ističa.",
+          "grid_invert": "Zapni, ak tvoj senzor ukazuje odber zo siete ako zápornú hodnotu.",
+          "grid_limit_kw": "Celkový odber domu zo siete neprekročí túto hodnotu (napr. 14,5). 0 = bez limitu.",
+          "cable_kw": "Ak batéria a wallbox idú cez spoločný kábel/istič (napr. 12). Batéria má prednosť. 0 = bez limitu."
         }
       }
     },
     "error": {
       "entity_not_found": "Entita neexistuje.",
       "no_prices": "V atribútoch senzora sa nenašli ceny.",
-      "invalid_intervals": "Neplatné časy – použi HH:MM-HH:MM oddelené čiarkou."
+      "invalid_intervals": "Neplatné časy – použi HH:MM-HH:MM oddelené čiarkou.",
+      "ev_switch_required": "Vyber aj entitu na zapnutie nabíjania.",
+      "ev_min_max": "Minimálny prúd je väčší než maximálny.",
+      "ev_option": "Zadaj možnosť, ktorú select pozná: {options}"
     }
   },
   "entity": {
@@ -120,6 +210,9 @@
       },
       "ciel_nt": {
         "name": "Cieľ nabitia v NT"
+      },
+      "auto_dovod": {
+        "name": "Auto – dôvod"
       }
     },
     "binary_sensor": {
@@ -142,6 +235,50 @@
       },
       "korekcia_fve": {
         "name": "Korekcia predpovede FVE"
+      },
+      "auto_prud": {
+        "name": "Auto – prúd (ručné režimy)"
+      },
+      "auto_spot_cena": {
+        "name": "Auto AI – lacný spot do"
+      }
+    },
+    "select": {
+      "auto_rezim": {
+        "name": "Nabíjanie auta",
+        "state": {
+          "off": "Vypnuté",
+          "now": "Nabíjať hneď",
+          "time": "Nabíjať od času",
+          "ai": "AI"
+        }
+      }
+    },
+    "time": {
+      "auto_cas": {
+        "name": "Auto – čas štartu"
+      }
+    },
+    "switch": {
+      "auto_riadenie": {
+        "name": "Auto – riadenie"
+      },
+      "auto_nt": {
+        "name": "Auto AI – nabíjať v NT"
+      },
+      "auto_fve": {
+        "name": "Auto AI – prebytky FVE"
+      },
+      "auto_spot": {
+        "name": "Auto AI – lacný spot"
+      }
+    }
+  },
+  "selector": {
+    "ev_phases": {
+      "options": {
+        "1": "1 fáza",
+        "3": "3 fázy"
       }
     }
   }

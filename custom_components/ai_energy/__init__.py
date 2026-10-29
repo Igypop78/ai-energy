@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
+from typing import Any
 
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
@@ -14,6 +15,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    CARD_NAME,
     CARD_URL,
     CONF_PRICE_NT,
     CONF_SELL_FEE,
@@ -34,6 +36,7 @@ from .const import (
     default_threshold,
 )
 from .coordinator import PriceCoordinator
+from .ev_controller import EvController, default_ev_settings, ev_enabled
 from .plan_coordinator import PlanCoordinator
 
 
@@ -45,15 +48,17 @@ class AiEnergyData:
     prices: PriceCoordinator
     plan: PlanCoordinator
     settings: dict[str, float] = field(default_factory=dict)
+    ev: EvController | None = None
+    ev_settings: dict[str, Any] = field(default_factory=dict)
 
 
 type AiEnergyConfigEntry = ConfigEntry[AiEnergyData]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Zaregistruje Home Price Card – na dashboard ju stačí pridať, netreba kopírovať súbory."""
+    """Zaregistruje Igy Price Action Card – na dashboard ju stačí pridať, netreba kopírovať súbory."""
     base = Path(__file__).parent
-    card = base / "www" / "home-price-card.js"
+    card = base / "www" / f"{CARD_NAME}.js"
     manifest = await hass.async_add_executor_job((base / "manifest.json").read_text)
     version = json.loads(manifest)["version"]
     await hass.http.async_register_static_paths([StaticPathConfig(CARD_URL, str(card), True)])
@@ -83,9 +88,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: AiEnergyConfigEntry) -> 
     plan = PlanCoordinator(hass, entry, prices, settings)
     await plan.async_config_entry_first_refresh()
     plan.async_track_inputs()
-    entry.runtime_data = AiEnergyData(prices=prices, plan=plan, settings=settings)
+    data = AiEnergyData(prices=prices, plan=plan, settings=settings)
+    cfg = {**entry.data, **entry.options}
+    if ev_enabled(cfg):
+        data.ev_settings = default_ev_settings(cfg)
+        data.ev = EvController(hass, entry, plan, data.ev_settings)
+    entry.runtime_data = data
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    if data.ev:
+        # až po obnovení nastavení auta z entít (select, switch…) – prvé rozhodnutie už s nimi
+        await data.ev.async_refresh()
+        data.ev.async_track_inputs()
     entry.async_on_unload(entry.add_update_listener(_async_reload))
     return True
 

@@ -2,6 +2,22 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.3.0] – 2026-10-29
+
+### Pridané
+- **Nabíjanie auta** – nový (voliteľný) krok sprievodcu: prepínač nabíjačky (switch / select), prúd, fázy,
+  min/max prúd, stav auta, meranie odberu zo siete, limit ističa a spoločný limit batérie + auta.
+  SmartEVSE sa predvyplní automaticky.
+- Režimy `select.ai_energy_auto_rezim`: Vypnuté, Nabíjať hneď, Nabíjať od času (`time.ai_energy_auto_cas`), AI.
+- AI: nabíjanie v NT (prúd podľa ističa, batéria má na kábli prednosť), z prebytku FVE (2 min štart / 3 min stop),
+  voliteľne pri lacnom spote.
+- `switch.ai_energy_auto_riadenie` – vypnuté = len odporúča; `sensor.ai_energy_auto_dovod` – čo a prečo.
+- Nastavenia integrácie (Konfigurovať) rozdelené do ponuky: Ceny a tarifa / Batéria a FVE / Nabíjanie auta.
+
+### Zmenené
+- Karta premenovaná na **Igy Price Action Card** (`custom:igy-price-action-card`, verzia 3.0.0).
+  Staré `custom:home-price-card` funguje ďalej.
+
 ## [0.2.3] – 2026-10-29
 
 ### Opravené

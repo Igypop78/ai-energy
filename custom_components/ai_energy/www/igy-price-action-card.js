@@ -1,9 +1,9 @@
 /*
- * Home Price Card – spotové ceny elektriny (OKTE) a plán batérie ako časová os.
+ * Igy Price Action Card – spotové ceny elektriny (OKTE) a plán batérie ako časová os.
  *
  *   Súčasť integrácie AI Energy – načíta sa automaticky, entity sa doplnia samé.
  *
- *   type: custom:home-price-card
+ *   type: custom:igy-price-action-card
  *   title: Cena elektriny
  *   price_entity: sensor.ai_energy_ceny          # atribút ceny: [{t: unix s, p: €/MWh}, …] po 15 min
  *   threshold_entity: input_number.ai_fve_prah     # prah predaja – ceny nad ním sú zelené
@@ -15,7 +15,7 @@
  */
 (function () {
   'use strict';
-  const VERSION = '2.6.3';
+  const VERSION = '3.0.0';
   // cena: neutrálna škála (nekoliduje s farbami akcií) – lacné svetlé, bežné sivé, nad prahom predaja zelená (ako predaj)
 const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' };
   const ACT = {
@@ -86,8 +86,8 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
     .msg { font-size: 13px; color: var(--secondary-text-color); padding: 8px 0; }
   `;
 
-  class HomePriceCard extends HTMLElement {
-    static getConfigElement() { return document.createElement('home-price-card-editor'); }
+  class IgyPriceActionCard extends HTMLElement {
+    static getConfigElement() { return document.createElement('igy-price-action-card-editor'); }
     static getStubConfig(hass) {
       const st = hass ? hass.states : {}, f = (re) => Object.keys(st).find((id) => re.test(id));
       const c = { price_entity: f(/^sensor\.ai_energy_ceny$/) || f(/^sensor\.okte_ceny/) || 'sensor.ai_energy_ceny' };
@@ -249,7 +249,7 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
   }
 
   /* ================= Editor ================= */
-  class HomePriceCardEditor extends HTMLElement {
+  class IgyPriceActionCardEditor extends HTMLElement {
     setConfig(c) { this._cfg = Object.assign({}, c); if (this._f) this._f.data = this._data(); }
     _data() { return Object.assign({ title: 'Cena elektriny', unit: '€/MWh' }, this._cfg || {}); }
     set hass(h) {
@@ -269,7 +269,7 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
         f.computeLabel = (x) => L[x.name] || x.title || x.name; f.computeHelper = (x) => H[x.name];
         f.addEventListener('value-changed', (e) => {
           e.stopPropagation();
-          const v = e.detail.value, c = { type: (this._cfg && this._cfg.type) || 'custom:home-price-card' };
+          const v = e.detail.value, c = { type: (this._cfg && this._cfg.type) || 'custom:igy-price-action-card' };
           Object.keys(v).forEach((k) => { if (k === 'type' || v[k] === '' || v[k] == null) return; c[k] = v[k]; });
           if (this._cfg && this._cfg.thresholds) c.thresholds = this._cfg.thresholds.slice();
           this._cfg = c; this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: JSON.parse(JSON.stringify(c)) }, bubbles: true, composed: true }));
@@ -285,8 +285,10 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
   // "Custom element not found"). Preto definujeme až keď je aplikácia (<home-assistant>) pripravená.
   const register = () => {
     const reg = window.customElements;
-    if (!reg.get('home-price-card-editor')) reg.define('home-price-card-editor', HomePriceCardEditor);
-    if (!reg.get('home-price-card')) reg.define('home-price-card', HomePriceCard);
+    if (!reg.get('igy-price-action-card-editor')) reg.define('igy-price-action-card-editor', IgyPriceActionCardEditor);
+    if (!reg.get('igy-price-action-card')) reg.define('igy-price-action-card', IgyPriceActionCard);
+    // staré meno – dashboardy s type: custom:home-price-card fungujú ďalej (ak ho nedefinoval starý samostatný súbor)
+    if (!reg.get('home-price-card')) reg.define('home-price-card', class extends IgyPriceActionCard {});
   };
   if (window.__haScopedRegistryReady || customElements.get('home-assistant') || !document.querySelector('home-assistant')) {
     register();
@@ -297,7 +299,7 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
     setTimeout(once, 10000);
   }
   window.customCards = window.customCards || [];
-  if (!window.customCards.some((c) => c.type === 'home-price-card'))
-    window.customCards.push({ type: 'home-price-card', name: 'Home Price Card', description: 'Spotové ceny elektriny a plán batérie ako časová os (AI Energy).', preview: false, documentationURL: 'https://github.com/Igypop78/ai-energy' });
-  console.info('%c HOME-PRICE-CARD %c ' + VERSION + ' ', 'background:#0a84ff;color:#fff;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
+  if (!window.customCards.some((c) => c.type === 'igy-price-action-card'))
+    window.customCards.push({ type: 'igy-price-action-card', name: 'Igy Price Action Card', description: 'Spotové ceny elektriny a plán batérie ako časová os (AI Energy).', preview: false, documentationURL: 'https://github.com/Igypop78/ai-energy' });
+  console.info('%c IGY-PRICE-ACTION-CARD %c ' + VERSION + ' ', 'background:#0a84ff;color:#fff;border-radius:3px 0 0 3px', 'background:#333;color:#fff;border-radius:0 3px 3px 0');
 })();

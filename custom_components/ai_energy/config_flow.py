@@ -11,6 +11,25 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_CABLE_KW,
+    CONF_EV_CHARGING,
+    CONF_EV_CURRENT,
+    CONF_EV_MAX_A,
+    CONF_EV_MIN_A,
+    CONF_EV_OFF_OPTION,
+    CONF_EV_ON_OPTION,
+    CONF_EV_PHASES,
+    CONF_EV_PLUG,
+    CONF_EV_POWER,
+    CONF_EV_SWITCH,
+    CONF_GRID_INVERT,
+    CONF_GRID_LIMIT_KW,
+    CONF_GRID_POWER,
+    DEFAULT_CABLE_KW,
+    DEFAULT_EV_MAX_A,
+    DEFAULT_EV_MIN_A,
+    DEFAULT_EV_PHASES,
+    DEFAULT_GRID_LIMIT_KW,
     CONF_CAPACITY,
     CONF_CHARGE_KW,
     CONF_EXPORT_KW,
@@ -148,6 +167,94 @@ def _check_tariff(data: dict[str, Any]) -> dict[str, str]:
         return {CONF_NT_INTERVALS: "invalid_intervals"}
     return {}
 
+EV_CURRENT_SELECTOR = selector.EntitySelector(selector.EntitySelectorConfig(domain=["number", "input_number"]))
+EV_SWITCH_SELECTOR = selector.EntitySelector(selector.EntitySelectorConfig(domain=["switch", "input_boolean", "select", "input_select"]))
+EV_STATE_SELECTOR = selector.EntitySelector(selector.EntitySelectorConfig(domain=["sensor", "binary_sensor"]))
+PHASES_SELECTOR = selector.SelectSelector(
+    selector.SelectSelectorConfig(options=["1", "3"], mode=selector.SelectSelectorMode.LIST, translation_key="ev_phases")
+)
+
+
+def _find(hass: HomeAssistant, domains: tuple[str, ...], *words: str) -> str | None:
+    """Prvá entita v doméne, ktorej entity_id obsahuje všetky slová (napr. smartevse + mode)."""
+    for eid in sorted(hass.states.async_entity_ids(list(domains))):
+        if all(w in eid for w in words):
+            return eid
+    return None
+
+
+def _guess_ev(hass: HomeAssistant) -> dict[str, str | None]:
+    """Predvyplnenie pre známe nabíjačky (SmartEVSE)."""
+    return {
+        CONF_EV_CURRENT: _find(hass, ("number",), "smartevse", "current_override") or _find(hass, ("number",), "smartevse", "chargecurrent"),
+        CONF_EV_SWITCH: _find(hass, ("select",), "smartevse", "mode"),
+        CONF_EV_PLUG: _find(hass, ("sensor",), "smartevse", "plug"),
+        CONF_EV_CHARGING: _find(hass, ("sensor",), "smartevse", "_state"),
+    }
+
+
+def _ev_schema(hass: HomeAssistant, cfg: dict[str, Any], guess: bool) -> vol.Schema:
+    g = _guess_ev(hass) if guess and not cfg.get(CONF_EV_SWITCH) else {}
+    v = lambda k: cfg.get(k) or g.get(k)  # noqa: E731
+    return vol.Schema(
+        {
+            _opt(CONF_EV_SWITCH, v(CONF_EV_SWITCH)): EV_SWITCH_SELECTOR,
+            _opt(CONF_EV_ON_OPTION, cfg.get(CONF_EV_ON_OPTION)): selector.TextSelector(),
+            _opt(CONF_EV_OFF_OPTION, cfg.get(CONF_EV_OFF_OPTION)): selector.TextSelector(),
+            _opt(CONF_EV_CURRENT, v(CONF_EV_CURRENT)): EV_CURRENT_SELECTOR,
+            vol.Required(CONF_EV_PHASES, default=str(cfg.get(CONF_EV_PHASES, DEFAULT_EV_PHASES))): PHASES_SELECTOR,
+            vol.Required(CONF_EV_MIN_A, default=cfg.get(CONF_EV_MIN_A, DEFAULT_EV_MIN_A)): _num(1, 32, 1, "A"),
+            vol.Required(CONF_EV_MAX_A, default=cfg.get(CONF_EV_MAX_A, DEFAULT_EV_MAX_A)): _num(1, 80, 1, "A"),
+            _opt(CONF_EV_PLUG, v(CONF_EV_PLUG)): EV_STATE_SELECTOR,
+            _opt(CONF_EV_CHARGING, v(CONF_EV_CHARGING)): EV_STATE_SELECTOR,
+            _opt(CONF_EV_POWER, cfg.get(CONF_EV_POWER)): POWER_SELECTOR,
+            _opt(CONF_GRID_POWER, cfg.get(CONF_GRID_POWER)): POWER_SELECTOR,
+            vol.Required(CONF_GRID_INVERT, default=bool(cfg.get(CONF_GRID_INVERT, False))): selector.BooleanSelector(),
+            vol.Required(CONF_GRID_LIMIT_KW, default=cfg.get(CONF_GRID_LIMIT_KW, DEFAULT_GRID_LIMIT_KW)): _num(0, 200, 0.5, "kW"),
+            vol.Required(CONF_CABLE_KW, default=cfg.get(CONF_CABLE_KW, DEFAULT_CABLE_KW)): _num(0, 200, 0.5, "kW"),
+        }
+    )
+
+
+def _select_options(hass: HomeAssistant, entity_id: str) -> list[str]:
+    st = hass.states.get(entity_id)
+    return list(st.attributes.get("options", [])) if st else []
+
+
+def _check_ev(hass: HomeAssistant, data: dict[str, Any]) -> tuple[dict[str, str], dict[str, str]]:
+    """Kontrola a doplnenie možností pre select. Vráti (chyby, placeholdery)."""
+    sw = data.get(CONF_EV_SWITCH)
+    if not sw:
+        if data.get(CONF_EV_CURRENT):
+            return {CONF_EV_SWITCH: "ev_switch_required"}, {}
+        return {}, {}
+    for key in (CONF_EV_SWITCH, CONF_EV_CURRENT, CONF_EV_PLUG, CONF_EV_CHARGING):
+        if data.get(key) and hass.states.get(data[key]) is None:
+            return {key: "entity_not_found"}, {}
+    if int(data.get(CONF_EV_MIN_A, 6)) > int(data.get(CONF_EV_MAX_A, 16)):
+        return {CONF_EV_MAX_A: "ev_min_max"}, {}
+    if sw.split(".")[0] in ("select", "input_select"):
+        opts = _select_options(hass, sw)
+        low = {o.lower(): o for o in opts}
+        if not data.get(CONF_EV_OFF_OPTION):
+            data[CONF_EV_OFF_OPTION] = next((o for o in opts if o.lower() in ("off", "vypnuté", "vypnute", "stop", "disabled")), "")
+        if not data.get(CONF_EV_ON_OPTION):
+            data[CONF_EV_ON_OPTION] = low.get("normal") or next(
+                (o for o in opts if o.lower() in ("on", "charge", "charging", "start", "enabled", "zapnuté", "now")), ""
+            )
+        bad = [k for k in (CONF_EV_ON_OPTION, CONF_EV_OFF_OPTION) if data.get(k) not in opts]
+        if bad:
+            return {bad[0]: "ev_option"}, {"options": "\n\n`" + "`, `".join(opts) + "`"}
+    return {}, {}
+
+
+
+def _clean(prev: dict[str, Any], schema: vol.Schema, user_input: dict[str, Any]) -> dict[str, Any]:
+    """Nové options = staré + krok; voliteľné polia, ktoré používateľ vymazal, sa odstránia."""
+    out = {k: v for k, v in prev.items() if k not in schema.schema}
+    out.update({k: v for k, v in user_input.items() if v not in (None, "")})
+    return out
+
 
 class AiEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
@@ -186,8 +293,22 @@ class AiEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
             errors = _check_battery(self.hass, user_input)
             if not errors:
                 self._data.update(user_input)
-                return self.async_create_entry(title="AI Energy", data=self._data)
+                return await self.async_step_auto()
         return self.async_show_form(step_id="bateria", data_schema=_battery_schema(self.hass, user_input or {}), errors=errors)
+
+    async def async_step_auto(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Krok 4: nabíjanie auta (voliteľné – prázdne = bez auta)."""
+        errors: dict[str, str] = {}
+        ph: dict[str, str] = {"options": ""}
+        if user_input is not None:
+            errors, extra = _check_ev(self.hass, user_input)
+            ph.update(extra)
+            if not errors:
+                self._data.update({k: v for k, v in user_input.items() if v not in (None, "")})
+                return self.async_create_entry(title="AI Energy", data=self._data)
+        return self.async_show_form(
+            step_id="auto", data_schema=_ev_schema(self.hass, user_input or {}, user_input is None), errors=errors, description_placeholders=ph
+        )
 
     @staticmethod
     @callback
@@ -198,13 +319,46 @@ class AiEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
 class AiEnergyOptionsFlow(OptionsFlow):
     """Zmena nastavení po inštalácii (Nastavenia → Integrácie → AI Energy → Konfigurovať)."""
 
+    def _cfg(self) -> dict[str, Any]:
+        return {**self.config_entry.data, **self.config_entry.options}
+
+    def _save(self, schema: vol.Schema, user_input: dict[str, Any]) -> ConfigFlowResult:
+        return self.async_create_entry(data=_clean(self._cfg(), schema, user_input))
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        cfg = {**self.config_entry.data, **self.config_entry.options}
+        return self.async_show_menu(step_id="init", menu_options=["ceny", "bateria", "auto"])
+
+    async def async_step_ceny(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        cfg = self._cfg()
         errors: dict[str, str] = {}
         if user_input is not None:
-            errors = {**_check_prices(self.hass, user_input), **_check_tariff(user_input), **_check_battery(self.hass, user_input)}
-            if not errors:
-                return self.async_create_entry(data=user_input)
+            errors = {**_check_prices(self.hass, user_input), **_check_tariff(user_input)}
             cfg.update(user_input)
-        schema = vol.Schema({**_prices_schema(self.hass, cfg).schema, **_tariff_schema(cfg).schema, **_battery_schema(self.hass, cfg).schema})
-        return self.async_show_form(step_id="init", data_schema=schema, errors=errors)
+        schema = vol.Schema({**_prices_schema(self.hass, cfg).schema, **_tariff_schema(cfg).schema})
+        if user_input is not None and not errors:
+            return self._save(schema, user_input)
+        return self.async_show_form(step_id="ceny", data_schema=schema, errors=errors)
+
+    async def async_step_bateria(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        cfg = self._cfg()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            errors = _check_battery(self.hass, user_input)
+            cfg.update(user_input)
+        schema = _battery_schema(self.hass, cfg)
+        if user_input is not None and not errors:
+            return self._save(schema, user_input)
+        return self.async_show_form(step_id="bateria", data_schema=schema, errors=errors)
+
+    async def async_step_auto(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        cfg = self._cfg()
+        errors: dict[str, str] = {}
+        ph: dict[str, str] = {"options": ""}
+        if user_input is not None:
+            errors, extra = _check_ev(self.hass, user_input)
+            ph.update(extra)
+            cfg = {**{k: v for k, v in cfg.items()}, **user_input}
+        schema = _ev_schema(self.hass, cfg, user_input is None)
+        if user_input is not None and not errors:
+            return self._save(schema, user_input)
+        return self.async_show_form(step_id="auto", data_schema=schema, errors=errors, description_placeholders=ph)
