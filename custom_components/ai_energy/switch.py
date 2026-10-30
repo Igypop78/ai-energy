@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import AiEnergyConfigEntry
-from .const import DOMAIN, EV_CONTROL, EV_USE_NT, EV_USE_PV, EV_USE_SPOT
+from .const import BAT_CONTROL, DOMAIN, EV_CONTROL, EV_USE_NT, EV_USE_PV, EV_USE_SPOT, inverter_enabled
 from .entity import device_info
 
 SWITCHES = (
@@ -25,6 +25,8 @@ SWITCHES = (
 async def async_setup_entry(hass: HomeAssistant, entry: AiEnergyConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     if entry.runtime_data.ev:
         async_add_entities(EvSwitch(entry, d) for d in SWITCHES)
+    if inverter_enabled({**entry.data, **entry.options}):
+        async_add_entities([BatControlSwitch(entry, SwitchEntityDescription(key=BAT_CONTROL, translation_key=BAT_CONTROL, icon="mdi:steering"))])
 
 
 class EvSwitch(SwitchEntity, RestoreEntity):
@@ -57,3 +59,26 @@ class EvSwitch(SwitchEntity, RestoreEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self._set(False)
+
+
+class BatControlSwitch(EvSwitch):
+    """Batéria – riadenie: vypnuté = AI Energy len odporúča, nič neposiela do meniča."""
+
+    @property
+    def _store(self) -> dict[str, Any]:
+        return self._entry.runtime_data.plan.bat
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self._store[BAT_CONTROL])
+
+    async def async_added_to_hass(self) -> None:
+        await super(EvSwitch, self).async_added_to_hass()
+        last = await self.async_get_last_state()
+        if last and last.state in ("on", "off"):
+            self._store[BAT_CONTROL] = last.state == "on"
+
+    async def _set(self, value: bool) -> None:
+        self._store[BAT_CONTROL] = value
+        self.async_write_ha_state()
+        await self._entry.runtime_data.plan.async_request_refresh()

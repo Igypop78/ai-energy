@@ -7,13 +7,14 @@
  */
 (function () {
   'use strict';
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
   const E = {
     mode: 'sensor.ai_energy_odporucany_rezim', why: 'sensor.ai_energy_dovod', plan: 'sensor.ai_energy_plan',
     minSoc: 'number.ai_energy_min_soc', maxSoc: 'number.ai_energy_max_soc', prah: 'number.ai_energy_prah_predaja',
     chargeKw: 'number.ai_energy_nabijaci_vykon', pvCorr: 'number.ai_energy_korekcia_fve',
     evMode: 'select.ai_energy_auto_rezim', evTime: 'time.ai_energy_auto_cas', evA: 'number.ai_energy_auto_prud',
     evWhy: 'sensor.ai_energy_auto_dovod', evCtl: 'switch.ai_energy_auto_riadenie', evNt: 'switch.ai_energy_auto_nt',
+    batMode: 'select.ai_energy_bateria_rezim', batDur: 'select.ai_energy_bateria_rucne_na', batCtl: 'switch.ai_energy_bateria_riadenie',
     evPv: 'switch.ai_energy_auto_fve', evSpot: 'switch.ai_energy_auto_spot', evSpotP: 'number.ai_energy_auto_spot_cena'
   };
   const MODE = {
@@ -21,6 +22,7 @@
     siet: ['Dom zo siete', '#8e8e93', '⏸️'], bez_pretokov: ['Bez pretokov', '#ffd60a', '🚫'], normal: ['Bežná prevádzka', '#64d2ff', '🏠']
   };
   const ACT = { P: 'predaj z batérie', E: 'predaj len z FVE', N: 'nabíjanie zo siete', F: 'FVE nabíja batériu', O: 'prebytok do siete', G: 'dom zo siete', D: 'dom z batérie' };
+  const DUR = [['1h', '1 h'], ['2h', '2 h'], ['4h', '4 h'], ['nt', 'do NT'], ['trvalo', 'natrvalo']];
   const EVM = [['off', 'Vypnuté'], ['now', 'Hneď'], ['time', 'Od času'], ['ai', 'AI']];
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const fmt = (v, d) => Number(v).toLocaleString('sk-SK', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -61,6 +63,8 @@
     .tgl.on { background: #30d158; } .tgl.on:after { left: 21px; }
     input[type=time] { font: inherit; font-weight: 600; color: var(--primary-text-color); background: var(--hc-surface, rgba(127,127,127,.15)); border: 0; border-radius: 9px; padding: 5px 10px; color-scheme: light dark; }
     .more { font-size: 12px; color: var(--primary-color); cursor: pointer; padding: 6px 2px 0; user-select: none; }
+    select.md { font: inherit; font-size: 14px; font-weight: 600; color: var(--primary-text-color); background: var(--hc-surface, rgba(127,127,127,.15)); border: 0; border-radius: 9px; padding: 6px 10px; color-scheme: light dark; max-width: 60%; }
+    .tag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 6px; background: rgba(255,159,10,.2); color: #ff9f0a; margin-left: 6px; }
     .msg { font-size: 13px; color: var(--secondary-text-color); padding: 10px 2px 2px; line-height: 1.4; }
   `;
 
@@ -125,11 +129,12 @@
   class IgyBatteryActionCard extends Base {
     _render() {
       if (!this._hass || !this._cfg) return;
-      if (!this._changed([E.mode, E.why, E.plan, E.minSoc, E.maxSoc, E.prah, E.chargeKw, E.pvCorr])) return;
+      if (!this._changed([E.mode, E.why, E.plan, E.minSoc, E.maxSoc, E.prah, E.chargeKw, E.pvCorr, E.batMode, E.batDur, E.batCtl])) return;
       const m = this._s(E.mode);
       if (!m) { this._shell('Batéria', 'mdi:home-battery', '', '<div class="msg">Nenašiel som AI Energy. Nainštaluj a nastav integráciu AI Energy.</div>'); return; }
-      const [mt, mc, me] = MODE[m.state] || [m.state, '#8e8e93', ''];
-      const pill = `<span class="pill" style="background:${mc}26;color:${mc}">${me} ${esc(mt)}</span>`;
+      const ap = m.attributes.aplikovany_rezim || m.state, man = !!m.attributes.rucne;
+      const [mt, mc, me] = MODE[ap] || [ap, '#8e8e93', ''];
+      const pill = `<span class="pill" style="background:${mc}26;color:${mc}">${me} ${esc(mt)}${man ? ' · ručne' : ''}</span>`;
       const pl = this._s(E.plan), pa = pl ? pl.attributes : {}, soc = pa.soc, sl = pa.sloty || [];
       let next = '';
       if (sl.length) {
@@ -140,7 +145,23 @@
       const box = `<div class="box"><div><div class="big">${soc != null ? fmt(soc, 0) + ' %' : '–'}</div><div class="small">batéria${minS != null ? ' · min ' + fmt(minS, 0) + ' %' : ''}</div></div>
         <div style="flex:1;min-width:0"><div class="why">${esc((this._s(E.why) || {}).state || '')}</div>${next ? `<div class="small">${esc(next)}</div>` : ''}</div></div>`;
       const kwh = (v) => fmt(v / 1000, 3) + ' €/kWh';
-      let body = box + `<div class="sub">Nastavenia</div>`
+      let body = box;
+      const bm = this._s(E.batMode);
+      if (bm) {
+        const ctl = (this._s(E.batCtl) || {}).state === 'on';
+        const opts = [['auto', 'Auto (AI)']].concat(Object.keys(MODE).map((k) => [k, MODE[k][0]]));
+        let until = '';
+        if (bm.state !== 'auto') {
+          const u = bm.attributes.rucne_do; const d = u ? new Date(u) : null;
+          until = d ? `do ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : 'natrvalo';
+        }
+        body += `<div class="sub">Menič${bm.state !== 'auto' ? `<span>ručne ${esc(until)}</span>` : ''}</div>`
+          + `<div class="row"><span class="l">Režim</span><select class="md" data-batmode>${opts.map(([k, t]) => `<option value="${k}" ${k === bm.state ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`;
+        const dur = (this._s(E.batDur) || {}).state;
+        body += `<div class="row"><span class="l">Ručný režim na<small>po uplynutí sa vráti na Auto</small></span></div><div class="chips" style="margin-top:-4px">${DUR.map(([k, t]) => `<span class="chip ${k === dur ? 'on' : ''}" data-dur="${k}">${t}</span>`).join('')}</div>`;
+        body += this._toggle(E.batCtl, '<b>Riadiť menič</b>', ctl ? 'AI Energy posiela režim do meniča' : 'vypnuté = len odporúča, nič neprepína');
+      }
+      body += `<div class="sub">Nastavenia</div>`
         + this._slider(E.minSoc, 'Min SOC', '#64d2ff', '%')
         + this._slider(E.maxSoc, 'Max SOC nabíjania zo siete', '#ff453a', '%')
         + this._stepper(E.prah, 'Min. predajná cena', 'pod ňou sa z batérie nepredáva', 5, kwh)
@@ -152,6 +173,20 @@
       this._shell('Batéria', 'mdi:home-battery', pill, body);
     }
   }
+
+  IgyBatteryActionCard.prototype._wireExtra = function (r) {
+    const sel = r.querySelector('[data-batmode]');
+    if (sel) {
+      sel.addEventListener('focus', () => { this._busy = true; });
+      sel.addEventListener('blur', () => { this._busy = false; });
+      sel.addEventListener('change', () => { this._busy = false; this._call('select', 'select_option', { entity_id: E.batMode, option: sel.value }); });
+    }
+    r.querySelectorAll('[data-dur]').forEach((el) => el.addEventListener('click', async () => {
+      await this._call('select', 'select_option', { entity_id: E.batDur, option: el.dataset.dur });
+      const bm = this._s(E.batMode);
+      if (bm && bm.state !== 'auto') this._call('select', 'select_option', { entity_id: E.batMode, option: bm.state }); // prepočíta koniec
+    }));
+  };
 
   // ------------------------------------------------------------------ auto
   class IgyEvActionCard extends Base {

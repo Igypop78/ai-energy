@@ -18,6 +18,12 @@ from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_BAT_VOLTAGE,
+    CONF_INV_CURRENT,
+    CONF_INV_OPTION,
+    CONF_INV_SELECT,
+    DEFAULT_BAT_VOLTAGE,
+    INV_MODES,
     CONF_BREAKER_A,
     CONF_BREAKER_PHASES,
     CONF_BREAKER_RESERVE,
@@ -94,6 +100,7 @@ POWER = selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", d
 HOUSE = selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", device_class=["energy", "power"]))
 EV_CURRENT = selector.EntitySelector(selector.EntitySelectorConfig(domain=["number", "input_number"]))
 EV_SWITCH = selector.EntitySelector(selector.EntitySelectorConfig(domain=["switch", "input_boolean", "select", "input_select"]))
+INV_SELECT = selector.EntitySelector(selector.EntitySelectorConfig(domain=["select", "input_select"]))
 EV_STATE = selector.EntitySelector(selector.EntitySelectorConfig(domain=["sensor", "binary_sensor"]))
 BOOL = selector.BooleanSelector()
 TEXT = selector.TextSelector()
@@ -255,6 +262,55 @@ def _s_fve(hass: HomeAssistant, c: dict[str, Any]) -> vol.Schema:
     )
 
 
+def _s_menic(hass: HomeAssistant, c: dict[str, Any]) -> vol.Schema:
+    guess = c.get(CONF_INV_SELECT) or _find(hass, "input_select", "deye", "mode") or _find(hass, "input_select", "operation_mode")
+    return vol.Schema(
+        {
+            _opt(CONF_INV_SELECT, guess): INV_SELECT,
+            _opt(CONF_INV_CURRENT, c.get(CONF_INV_CURRENT) or _find(hass, "number", "battery_grid_charging_current")): EV_CURRENT,
+            vol.Required(CONF_BAT_VOLTAGE, default=c.get(CONF_BAT_VOLTAGE, DEFAULT_BAT_VOLTAGE)): _num(10, 1000, 0.1, "V"),
+        }
+    )
+
+
+INV_GUESS = {
+    "predaj": ("export from battery", "export battery", "sell", "discharge"),
+    "predaj_fve": ("export now", "export pv", "export"),
+    "nabijanie": ("charge from grid", "grid charge", "charge"),
+    "siet": ("grid only", "standby", "hold", "zero export"),
+    "bez_pretokov": ("zero export", "no export"),
+    "normal": ("normal", "auto", "self use", "self-use"),
+}
+
+
+def _guess_inv_option(mode: str, opts: list[str]) -> str | None:
+    low = {o.lower(): o for o in opts}
+    for g in INV_GUESS[mode]:
+        if g in low:
+            return low[g]
+    return None
+
+
+def _s_menic_mapovanie(hass: HomeAssistant, c: dict[str, Any]) -> vol.Schema:
+    opts = _select_options(hass, c.get(CONF_INV_SELECT))
+    sel = selector.SelectSelector(selector.SelectSelectorConfig(options=opts, mode=selector.SelectSelectorMode.DROPDOWN))
+    fields: dict[Any, Any] = {}
+    for m in INV_MODES:
+        k = f"{CONF_INV_OPTION}{m}"
+        v = c.get(k) if c.get(k) in opts else _guess_inv_option(m, opts)
+        fields[_req(k, v)] = sel
+    return vol.Schema(fields)
+
+
+def _check_menic(hass: HomeAssistant, d: dict[str, Any]) -> dict[str, str]:
+    err = _check_entities(CONF_INV_SELECT, CONF_INV_CURRENT)(hass, d)
+    if err:
+        return err
+    if d.get(CONF_INV_SELECT) and len(_select_options(hass, d[CONF_INV_SELECT])) < 2:
+        return {CONF_INV_SELECT: "no_options"}
+    return {}
+
+
 def _s_auto(hass: HomeAssistant, c: dict[str, Any]) -> vol.Schema:
     g = _guess_ev(hass) if not c.get(CONF_EV_SWITCH) else {}
     v = lambda k: c.get(k) or g.get(k)  # noqa: E731
@@ -373,6 +429,8 @@ STEPS: dict[str, tuple[Callable[[HomeAssistant, dict[str, Any]], vol.Schema], Ca
     "predaj_pevna": (_s_predaj_pevna, _check_predaj_pevna),
     "bateria": (_s_bateria, _check_entities(CONF_SOC_ENTITY, CONF_HOUSE_SENSOR)),
     "fve": (_s_fve, _check_entities(CONF_PV_TODAY, CONF_PV_TOMORROW, CONF_PV_POWER)),
+    "menic": (_s_menic, _check_menic),
+    "menic_mapovanie": (_s_menic_mapovanie, None),
     "auto": (_s_auto, _check_auto),
     "auto_moznosti": (_s_auto_moznosti, _check_moznosti),
     "istic": (_s_istic, _check_entities(CONF_GRID_POWER)),
@@ -380,7 +438,7 @@ STEPS: dict[str, tuple[Callable[[HomeAssistant, dict[str, Any]], vol.Schema], Ca
 
 
 # staršie kľúče, ktoré nové kroky nahrádzajú
-LEGACY = {"bateria": ["house_kw", "house_power_entity"], "istic": ["grid_limit_kw"], "auto": [CONF_EV_ON_OPTION, CONF_EV_OFF_OPTION]}
+LEGACY = {"bateria": ["house_kw", "house_power_entity"], "istic": ["grid_limit_kw"]}
 
 
 def _keys(schema: vol.Schema) -> list[str]:
@@ -410,6 +468,8 @@ def _chain(step: str, d: dict[str, Any]) -> str | None:
     """Podkrok, ktorý patrí k danému kroku (aj pri úprave v Konfigurovať)."""
     if step == "predaj":
         return {SELL_SPOT: "predaj_spot", SELL_FIXED: "predaj_pevna"}.get(sell_mode(d))
+    if step == "menic" and d.get(CONF_INV_SELECT):
+        return "menic_mapovanie"
     if step == "auto" and _is_select(d.get(CONF_EV_SWITCH)):
         return "auto_moznosti"
     return None
@@ -463,6 +523,12 @@ class _StepsMixin:
     async def async_step_fve(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return await self._step("fve", user_input)
 
+    async def async_step_menic(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        return await self._step("menic", user_input)
+
+    async def async_step_menic_mapovanie(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        return await self._step("menic_mapovanie", user_input)
+
     async def async_step_auto(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return await self._step("auto", user_input)
 
@@ -493,6 +559,7 @@ def _summary(d: dict[str, Any]) -> dict[str, str]:
         "fve": d.get(CONF_PV_TODAY) or "–" if d.get(CONF_HAS_PV) else "–",
         "auto": d.get(CONF_EV_SWITCH) or "–" if d.get(CONF_HAS_EV) else "–",
         "limit": f"{limit:.1f} kW" if d.get(CONF_HAS_EV) and limit else "–",
+        "menic": d.get(CONF_INV_SELECT) or "–",
     }
 
 
@@ -511,11 +578,11 @@ class AiEnergyConfigFlow(_StepsMixin, ConfigFlow, domain=DOMAIN):
         d = self._data
         nxt = _chain(step, d)
         if nxt is None:
-            order = ["vitaj", "ceny", "nakup", "predaj", "bateria", "fve", "auto", "istic", "hotovo"]
-            base = {"predaj_spot": "predaj", "predaj_pevna": "predaj", "auto_moznosti": "auto"}.get(step, step)
+            order = ["vitaj", "ceny", "nakup", "predaj", "bateria", "fve", "menic", "auto", "istic", "hotovo"]
+            base = {"predaj_spot": "predaj", "predaj_pevna": "predaj", "auto_moznosti": "auto", "menic_mapovanie": "menic"}.get(step, step)
             nxt = order[order.index(base) + 1]
             if nxt == "fve" and not d.get(CONF_HAS_PV):
-                nxt = "auto"
+                nxt = "menic"
             if nxt == "auto" and not d.get(CONF_HAS_EV):
                 nxt = "hotovo"
         return await getattr(self, f"async_step_{nxt}")()
@@ -541,6 +608,7 @@ class AiEnergyOptionsFlow(_StepsMixin, OptionsFlow):
         menu = ["vitaj", "ceny", "nakup", "predaj", "bateria"]
         if has_pv(self._data):
             menu.append("fve")
+        menu.append("menic")
         if self._data.get(CONF_HAS_EV) or has_ev(self._data):
             menu += ["auto", "istic"]
         return self.async_show_menu(step_id="init", menu_options=menu)

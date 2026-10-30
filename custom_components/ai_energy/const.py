@@ -161,6 +161,24 @@ def has_ev(cfg: dict) -> bool:
     return bool(cfg.get(CONF_EV_SWITCH))
 
 
+# --- v0.6: ovládanie meniča cez select (mapovanie režimov) ---
+CONF_INV_SELECT = "inverter_mode_entity"
+CONF_INV_OPTION = "inverter_option_"  # + režim AI Energy (predaj, nabijanie, …)
+CONF_INV_CURRENT = "inverter_current_entity"  # voliteľné – nabíjací prúd batérie zo siete (A)
+CONF_BAT_VOLTAGE = "battery_voltage"
+DEFAULT_BAT_VOLTAGE = 51.0
+INV_MODES = ["predaj", "predaj_fve", "nabijanie", "siet", "bez_pretokov", "normal"]
+
+BAT_CONTROL = "bateria_riadenie"  # switch
+BAT_MODE = "bateria_rezim"  # select: auto / ručný režim
+BAT_DUR = "bateria_rucne_na"  # select: 1h / 2h / 4h / nt / trvalo
+BAT_UNTIL = "bateria_rucne_do"  # interné – koniec ručného režimu (unix s) alebo None
+
+
+def inverter_enabled(cfg: dict) -> bool:
+    return bool(cfg.get(CONF_INV_SELECT))
+
+
 CARD_NAME = "igy-price-action-card"
 CARD_URL = f"/ai_energy/{CARD_NAME}.js"
 CONTROL_CARDS_URL = "/ai_energy/igy-action-cards.js"

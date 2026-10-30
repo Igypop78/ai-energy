@@ -177,7 +177,38 @@
       },
       "hotovo": {
         "title": "Done",
-        "description": "**Buying:** {nakup}\n**Selling:** {predaj}\n**Battery:** {bateria}\n**House consumption:** {spotreba}\n**PV:** {fve}\n**EV:** {auto} (grid limit {limit})\n\n**Next:**\n• add the **Igy Price Action Card** to your dashboard,\n• settings are on the **AI Energy** device (min SOC, min. selling price…),\n• EV control is **off** – turn on *EV control* once the recommendations look right.\n\nEverything can be changed in **Configure**."
+        "description": "**Buying:** {nakup}\n**Selling:** {predaj}\n**Battery:** {bateria}\n**House consumption:** {spotreba}\n**PV:** {fve}\n**EV:** {auto} (grid limit {limit})\n**Inverter:** {menic}\n\n**Next:**\n• add the **Igy Price Action Card** to your dashboard,\n• settings are on the **AI Energy** device (min SOC, min. selling price…),\n• EV control is **off** – turn on *EV control* once the recommendations look right.\n\nEverything can be changed in **Configure**."
+      },
+      "menic": {
+        "title": "Inverter control",
+        "description": "AI Energy can send the battery mode to a **select** you already control with your own automation – e.g. `input_select.deye_operation_mode`. That automation then sets the inverter.\n\nLeave empty if you don't want to control the inverter yet – AI Energy will only recommend. Even when set, control stays **off** until you turn on *Battery control*.",
+        "data": {
+          "inverter_mode_entity": "Inverter mode select",
+          "inverter_current_entity": "Grid charging current",
+          "battery_voltage": "Battery voltage"
+        },
+        "data_description": {
+          "inverter_mode_entity": "input_select or select with modes (e.g. Normal, Export from Battery, Charge from Grid…). You map the modes in the next step.",
+          "inverter_current_entity": "Optional. Battery grid charging current in A (Deye “Battery grid charging current”). Set from charging power, shared cable with the EV and the main breaker.",
+          "battery_voltage": "To convert kW to A, e.g. 51 V (200 A ≈ 10 kW)."
+        }
+      },
+      "menic_mapovanie": {
+        "title": "Mode mapping",
+        "description": "For each AI Energy mode pick the option of your select that does it on the inverter.",
+        "data": {
+          "inverter_option_predaj": "Sell from battery",
+          "inverter_option_predaj_fve": "Sell PV only",
+          "inverter_option_nabijanie": "Charge from grid",
+          "inverter_option_siet": "House from grid, battery idle",
+          "inverter_option_bez_pretokov": "No export",
+          "inverter_option_normal": "Normal"
+        },
+        "data_description": {
+          "inverter_option_siet": "Battery neither charges nor discharges, house runs from the grid (in low tariff with a full battery). If you have no such mode, pick Zero Export or Normal.",
+          "inverter_option_bez_pretokov": "At negative prices – export nothing.",
+          "inverter_option_predaj_fve": "Export PV surplus, battery not discharged."
+        }
       }
     },
     "error": {
@@ -380,7 +411,39 @@
           "bateria": "Battery and house consumption",
           "fve": "Solar (PV)",
           "auto": "EV charger",
-          "istic": "Main breaker and grid meter"
+          "istic": "Main breaker and grid meter",
+          "menic": "Inverter control"
+        }
+      },
+      "menic": {
+        "title": "Inverter control",
+        "description": "AI Energy can send the battery mode to a **select** you already control with your own automation – e.g. `input_select.deye_operation_mode`. That automation then sets the inverter.\n\nLeave empty if you don't want to control the inverter yet – AI Energy will only recommend. Even when set, control stays **off** until you turn on *Battery control*.",
+        "data": {
+          "inverter_mode_entity": "Inverter mode select",
+          "inverter_current_entity": "Grid charging current",
+          "battery_voltage": "Battery voltage"
+        },
+        "data_description": {
+          "inverter_mode_entity": "input_select or select with modes (e.g. Normal, Export from Battery, Charge from Grid…). You map the modes in the next step.",
+          "inverter_current_entity": "Optional. Battery grid charging current in A (Deye “Battery grid charging current”). Set from charging power, shared cable with the EV and the main breaker.",
+          "battery_voltage": "To convert kW to A, e.g. 51 V (200 A ≈ 10 kW)."
+        }
+      },
+      "menic_mapovanie": {
+        "title": "Mode mapping",
+        "description": "For each AI Energy mode pick the option of your select that does it on the inverter.",
+        "data": {
+          "inverter_option_predaj": "Sell from battery",
+          "inverter_option_predaj_fve": "Sell PV only",
+          "inverter_option_nabijanie": "Charge from grid",
+          "inverter_option_siet": "House from grid, battery idle",
+          "inverter_option_bez_pretokov": "No export",
+          "inverter_option_normal": "Normal"
+        },
+        "data_description": {
+          "inverter_option_siet": "Battery neither charges nor discharges, house runs from the grid (in low tariff with a full battery). If you have no such mode, pick Zero Export or Normal.",
+          "inverter_option_bez_pretokov": "At negative prices – export nothing.",
+          "inverter_option_predaj_fve": "Export PV surplus, battery not discharged."
         }
       }
     },
@@ -466,6 +529,28 @@
           "time": "Charge from time",
           "ai": "AI"
         }
+      },
+      "bateria_rezim": {
+        "name": "Battery mode",
+        "state": {
+          "auto": "Auto (AI)",
+          "predaj": "Sell from battery",
+          "predaj_fve": "Sell PV only",
+          "nabijanie": "Charge from grid",
+          "siet": "House from grid, battery idle",
+          "bez_pretokov": "No export",
+          "normal": "Normal"
+        }
+      },
+      "bateria_rucne_na": {
+        "name": "Battery manual for",
+        "state": {
+          "1h": "1 hour",
+          "2h": "2 hours",
+          "4h": "4 hours",
+          "nt": "Until next low tariff",
+          "trvalo": "Permanently"
+        }
       }
     },
     "time": {
@@ -485,6 +570,9 @@
       },
       "auto_spot": {
         "name": "EV AI – cheap spot"
+      },
+      "bateria_riadenie": {
+        "name": "Battery control"
       }
     }
   },

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 from typing import Any
 
@@ -38,17 +38,38 @@ from .const import (
     SET_MIN_SOC,
     SET_PV_CORRECTION,
     SET_THRESHOLD,
+    BAT_CONTROL,
+    BAT_DUR,
+    BAT_MODE,
+    BAT_UNTIL,
+    CONF_BAT_VOLTAGE,
+    CONF_CABLE_KW,
+    CONF_INV_CURRENT,
+    CONF_INV_OPTION,
+    CONF_INV_SELECT,
+    DEFAULT_BAT_VOLTAGE,
     effective_sell_fee,
+    grid_limit_kw,
+    inverter_enabled,
     house_kw_estimate,
     house_sensor,
     sell_mode,
 )
 from .coordinator import PriceCoordinator
+from .inverter import AUTO, InverterState, grid_current, should_write_current, target_mode
 from .planner import PlanConfig, build_slots, plan, recommend
 from .prices import parse_intervals, parse_pv
 
 _LOGGER = logging.getLogger(__name__)
 
+MODE_NAMES = {
+    "predaj": "Predaj z batérie",
+    "predaj_fve": "Predaj len z FVE",
+    "nabijanie": "Nabíjanie zo siete",
+    "siet": "Dom zo siete",
+    "bez_pretokov": "Bez pretokov",
+    "normal": "Bežná prevádzka",
+}
 HOUSE_STATS_DAYS = 7
 HOUSE_STATS_REFRESH = timedelta(hours=1)
 ENERGY_UNITS = {"kwh": 1.0, "wh": 0.001, "mwh": 1000.0}
@@ -85,6 +106,9 @@ class PlanCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._last_mode: str | None = None
         self._house_hist: float | None = None  # priemerná spotreba domu z histórie (kW)
         self._house_hist_at = None
+        self.bat: dict[str, Any] = {BAT_CONTROL: False, BAT_MODE: AUTO, BAT_DUR: "2h", BAT_UNTIL: None}
+        self.bat_listeners: list = []
+        self._inv = InverterState()
 
     @property
     def cfg(self) -> dict[str, Any]:
@@ -215,4 +239,60 @@ class PlanCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         house_kw = self.house_now_kw()  # okamžitá spotreba domu, ak je senzor domu výkonový
         rec = recommend(p, slots, now, soc, cfg, tz, self._last_mode, pv_kw=pv_kw, house_kw=house_kw)
         self._last_mode = rec.rezim
-        return {"plan": p, "rec": rec, "dovod": rec.dovod, "cfg": cfg, "soc": soc}
+        out = {"plan": p, "rec": rec, "dovod": rec.dovod, "cfg": cfg, "soc": soc, "ciel": rec.rezim, "rucne": False, "rucne_do": None}
+        if inverter_enabled(c):
+            await self._async_inverter(out, now, tz, cfg)
+        return out
+
+    async def _async_inverter(self, out: dict[str, Any], now: float, tz, cfg: PlanConfig) -> None:
+        """Pošle režim do selectu meniča (podľa mapovania) a postráži nabíjací prúd zo siete."""
+        c, b = self.cfg, self.bat
+        rec = out["rec"]
+        ciel, rucne = target_mode(rec.rezim, b[BAT_MODE], b.get(BAT_UNTIL), now)
+        if not rucne and b[BAT_MODE] != AUTO:  # ručný režim vypršal → späť na Auto
+            b[BAT_MODE], b[BAT_UNTIL] = AUTO, None
+            for cb in self.bat_listeners:
+                cb()
+        out["ciel"], out["rucne"], out["rucne_do"] = ciel, rucne, b.get(BAT_UNTIL) if rucne else None
+        meno = MODE_NAMES.get(ciel, ciel)
+        if rucne:
+            do = datetime.fromtimestamp(b[BAT_UNTIL], tz).strftime("%H:%M") if b.get(BAT_UNTIL) else "natrvalo"
+            out["dovod"] = f"Ručne: {meno} ({do}) – AI by: {rec.dovod}"
+        control = bool(b[BAT_CONTROL])
+        if not control:
+            out["dovod"] = f"Len odporúčanie (Riadenie vypnuté) – {out['dovod']}"
+            return
+
+        sel = c.get(CONF_INV_SELECT)
+        opt = c.get(f"{CONF_INV_OPTION}{ciel}")
+        st = self.hass.states.get(sel or "")
+        try:
+            if st is not None and st.state not in ("unavailable", "unknown") and opt and st.state != opt:
+                await self.hass.services.async_call(sel.split(".")[0], "select_option", {"entity_id": sel, "option": opt}, blocking=True)
+                _LOGGER.info("AI Energy batéria: %s → %s (%s)", sel, opt, out["dovod"])
+
+            cur_id = c.get(CONF_INV_CURRENT)
+            cst = self.hass.states.get(cur_id or "")
+            if cst is not None and cst.state not in ("unavailable", "unknown"):
+                ev = getattr(self.entry, "runtime_data", None)
+                ev_data = (ev.ev.data if ev and ev.ev else None) or {}
+                grid = self.surplus_kw()
+                have = float(cst.state)
+                want = grid_current(
+                    charging=ciel == "nabijanie",
+                    charge_kw=cfg.charge_kw,
+                    voltage=float(c.get(CONF_BAT_VOLTAGE, DEFAULT_BAT_VOLTAGE)),
+                    cable_kw=float(c.get(CONF_CABLE_KW) or 0),
+                    grid_limit_kw=grid_limit_kw(c),
+                    grid_import_kw=-grid if grid is not None and c.get(CONF_GRID_POWER) else None,
+                    ev_charging=bool(ev_data.get("nabija")),
+                    current_a=have,
+                    max_a=float(cst.attributes.get("max", 1e9)),
+                )
+                if want is not None and want != round(have) and should_write_current(self._inv, want, have, now):
+                    await self.hass.services.async_call(cur_id.split(".")[0], "set_value", {"entity_id": cur_id, "value": want}, blocking=True)
+                    self._inv.last_current, self._inv.last_current_ts = want, now
+                    _LOGGER.info("AI Energy batéria: nabíjací prúd %s A", want)
+        except Exception as err:  # noqa: BLE001 – menič môže byť nedostupný, o minútu sa skúsi znova
+            out["dovod"] = f"{out['dovod']} – chyba meniča: {err}"
+            _LOGGER.warning("AI Energy: nepodarilo sa nastaviť menič: %s", err)

@@ -177,7 +177,38 @@
       },
       "hotovo": {
         "title": "Hotovo",
-        "description": "**Nákup:** {nakup}\n**Predaj:** {predaj}\n**Batéria:** {bateria}\n**Spotreba domu:** {spotreba}\n**FVE:** {fve}\n**Auto:** {auto} (limit odberu {limit})\n\n**Čo ďalej:**\n• na dashboard pridaj kartu **Igy Price Action Card**,\n• nastavenia nájdeš v zariadení **AI Energy** (min SOC, min. predajná cena…),\n• riadenie auta je **vypnuté** – zapni *Auto – riadenie*, keď si overíš, že odporúčania sedia.\n\nVšetko sa dá zmeniť v **Konfigurovať**."
+        "description": "**Nákup:** {nakup}\n**Predaj:** {predaj}\n**Batéria:** {bateria}\n**Spotreba domu:** {spotreba}\n**FVE:** {fve}\n**Auto:** {auto} (limit odberu {limit})\n**Menič:** {menic}\n\n**Čo ďalej:**\n• na dashboard pridaj kartu **Igy Price Action Card**,\n• nastavenia nájdeš v zariadení **AI Energy** (min SOC, min. predajná cena…),\n• riadenie auta je **vypnuté** – zapni *Auto – riadenie*, keď si overíš, že odporúčania sedia.\n\nVšetko sa dá zmeniť v **Konfigurovať**."
+      },
+      "menic": {
+        "title": "Ovládanie meniča",
+        "description": "AI Energy vie posielať režim batérie do **výberu (select)**, ktorý už ovládaš svojou automatizáciou – napr. `input_select.deye_operation_mode`. Tá potom nastaví samotný menič.\n\nAk menič zatiaľ nechceš riadiť, nechaj pole prázdne – AI Energy bude len odporúčať. Aj po nastavení je riadenie **vypnuté**, kým nezapneš *Batéria – riadenie*.",
+        "data": {
+          "inverter_mode_entity": "Výber režimu meniča",
+          "inverter_current_entity": "Nabíjací prúd zo siete",
+          "battery_voltage": "Napätie batérie"
+        },
+        "data_description": {
+          "inverter_mode_entity": "input_select alebo select s režimami (napr. Normal, Export from Battery, Charge from Grid…). V ďalšom kroku priradíš režimy.",
+          "inverter_current_entity": "Voliteľné. Entita s prúdom nabíjania batérie zo siete v A (pri Deye „Battery grid charging current“). AI Energy ho nastaví podľa nabíjacieho výkonu, spoločného kábla s autom a ističa.",
+          "battery_voltage": "Na prepočet kW na A, napr. 51 V (200 A ≈ 10 kW)."
+        }
+      },
+      "menic_mapovanie": {
+        "title": "Priradenie režimov",
+        "description": "Pri každom režime AI Energy vyber možnosť tvojho výberu, ktorá ho na meniči spraví.",
+        "data": {
+          "inverter_option_predaj": "Predaj z batérie",
+          "inverter_option_predaj_fve": "Predaj len z FVE",
+          "inverter_option_nabijanie": "Nabíjanie zo siete",
+          "inverter_option_siet": "Dom zo siete, batéria stojí",
+          "inverter_option_bez_pretokov": "Bez pretokov",
+          "inverter_option_normal": "Bežná prevádzka"
+        },
+        "data_description": {
+          "inverter_option_siet": "Batéria sa nenabíja ani nevybíja, dom ide zo siete (v NT, keď je batéria nabitá). Ak taký režim nemáš, vyber Zero Export alebo Normal.",
+          "inverter_option_bez_pretokov": "Pri zápornej cene – nič nepredávať do siete.",
+          "inverter_option_predaj_fve": "Predaj prebytku FVE, batéria sa nevybíja."
+        }
       }
     },
     "error": {
@@ -380,7 +411,39 @@
           "bateria": "Batéria a spotreba domu",
           "fve": "Fotovoltika",
           "auto": "Nabíjačka auta",
-          "istic": "Istič a elektromer"
+          "istic": "Istič a elektromer",
+          "menic": "Ovládanie meniča"
+        }
+      },
+      "menic": {
+        "title": "Ovládanie meniča",
+        "description": "AI Energy vie posielať režim batérie do **výberu (select)**, ktorý už ovládaš svojou automatizáciou – napr. `input_select.deye_operation_mode`. Tá potom nastaví samotný menič.\n\nAk menič zatiaľ nechceš riadiť, nechaj pole prázdne – AI Energy bude len odporúčať. Aj po nastavení je riadenie **vypnuté**, kým nezapneš *Batéria – riadenie*.",
+        "data": {
+          "inverter_mode_entity": "Výber režimu meniča",
+          "inverter_current_entity": "Nabíjací prúd zo siete",
+          "battery_voltage": "Napätie batérie"
+        },
+        "data_description": {
+          "inverter_mode_entity": "input_select alebo select s režimami (napr. Normal, Export from Battery, Charge from Grid…). V ďalšom kroku priradíš režimy.",
+          "inverter_current_entity": "Voliteľné. Entita s prúdom nabíjania batérie zo siete v A (pri Deye „Battery grid charging current“). AI Energy ho nastaví podľa nabíjacieho výkonu, spoločného kábla s autom a ističa.",
+          "battery_voltage": "Na prepočet kW na A, napr. 51 V (200 A ≈ 10 kW)."
+        }
+      },
+      "menic_mapovanie": {
+        "title": "Priradenie režimov",
+        "description": "Pri každom režime AI Energy vyber možnosť tvojho výberu, ktorá ho na meniči spraví.",
+        "data": {
+          "inverter_option_predaj": "Predaj z batérie",
+          "inverter_option_predaj_fve": "Predaj len z FVE",
+          "inverter_option_nabijanie": "Nabíjanie zo siete",
+          "inverter_option_siet": "Dom zo siete, batéria stojí",
+          "inverter_option_bez_pretokov": "Bez pretokov",
+          "inverter_option_normal": "Bežná prevádzka"
+        },
+        "data_description": {
+          "inverter_option_siet": "Batéria sa nenabíja ani nevybíja, dom ide zo siete (v NT, keď je batéria nabitá). Ak taký režim nemáš, vyber Zero Export alebo Normal.",
+          "inverter_option_bez_pretokov": "Pri zápornej cene – nič nepredávať do siete.",
+          "inverter_option_predaj_fve": "Predaj prebytku FVE, batéria sa nevybíja."
         }
       }
     },
@@ -466,6 +529,28 @@
           "time": "Nabíjať od času",
           "ai": "AI"
         }
+      },
+      "bateria_rezim": {
+        "name": "Batéria – režim",
+        "state": {
+          "auto": "Auto (AI)",
+          "predaj": "Predaj z batérie",
+          "predaj_fve": "Predaj len z FVE",
+          "nabijanie": "Nabíjanie zo siete",
+          "siet": "Dom zo siete, batéria stojí",
+          "bez_pretokov": "Bez pretokov",
+          "normal": "Bežná prevádzka"
+        }
+      },
+      "bateria_rucne_na": {
+        "name": "Batéria – ručne na",
+        "state": {
+          "1h": "1 hodinu",
+          "2h": "2 hodiny",
+          "4h": "4 hodiny",
+          "nt": "Do ďalšej NT",
+          "trvalo": "Natrvalo"
+        }
       }
     },
     "time": {
@@ -485,6 +570,9 @@
       },
       "auto_spot": {
         "name": "Auto AI – lacný spot"
+      },
+      "bateria_riadenie": {
+        "name": "Batéria – riadenie"
       }
     }
   },

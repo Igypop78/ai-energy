@@ -177,7 +177,14 @@ class ModeSensor(_Base):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {"dovod": self.coordinator.data.get("dovod")}
+        d = self.coordinator.data
+        u = d.get("rucne_do")
+        return {
+            "dovod": d.get("dovod"),
+            "aplikovany_rezim": d.get("ciel"),
+            "rucne": d.get("rucne", False),
+            "rucne_do": dt_util.as_local(dt_util.utc_from_timestamp(u)).isoformat() if u else None,
+        }
 
 
 class ReasonSensor(_Base):
