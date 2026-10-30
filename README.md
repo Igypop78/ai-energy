@@ -4,8 +4,8 @@ Integrácia pre [Home Assistant](https://www.home-assistant.io/), ktorá plánuj
 podľa spotových cien elektriny (OKTE a ďalšie) a dvojtarifného nákupu – s dôrazom na to, aby si **vždy videl,
 čo sa deje a prečo**.
 
-> ⚠️ **Vo vývoji (v0.3).** Batériu zatiaľ **len odporúča** (riadenie meniča pribudne neskôr).
-> **Nabíjanie auta už vie riadiť** – po zapnutí prepínača *Auto – riadenie*.
+> ⚠️ **Vo vývoji.** Batériu riadi cez tvoj výber režimu meniča (po zapnutí *Batéria – riadenie*),
+> nabíjanie auta po zapnutí *Auto – riadenie*. Predvolene obe len odporúčajú.
 
 ## Čo vie
 
@@ -102,6 +102,8 @@ ak ich máš.
 6. **Fotovoltika** – predpoveď Solcast a voliteľne okamžitý výkon FVE.
 7. **Nabíjačka auta** – zapnutie nabíjania, prúd, fázy, stav auta. Pri výbere režimu (SmartEVSE) ďalší krok
    ponúkne jeho režimy na výber (Normal / Off).
+7a. **Ovládanie meniča** – výber režimu (napr. `input_select.deye_operation_mode`), priradenie režimov,
+   voliteľne nabíjací prúd zo siete a napätie batérie.
 8. **Istič a elektromer** – hlavný istič v A (napr. 25 pre 3×25 A), meranie odberu zo siete;
    v *Pokročilých* rezerva ističa a spoločný limit batérie a auta.
 9. **Hotovo** – zhrnutie a čo ďalej.
@@ -114,7 +116,8 @@ Všetko sa dá neskôr zmeniť: **Nastavenia → Zariadenia a služby → AI Ene
 - [x] Plánovač batérie (predaj v najdrahších slotoch, nabíjanie v NT, predpoveď FVE)
 - [x] Karta s cenami a plánom (Igy Price Action Card) – inštaluje sa spolu s integráciou
 - [x] Nabíjanie auta (NT, prebytky FVE, lacný spot, od času), limity ističa a kábla
-- [ ] Riadenie meniča (skripty + blueprint pre Deye / Solarman), ručný override
+- [x] Riadenie meniča cez výber režimu s mapovaním, ručný režim na čas, nabíjací prúd zo siete
+- [ ] Blueprint pre Deye / Solarman (pre tých, čo nemajú vlastnú automatizáciu)
 - [ ] Ďalšie meniče a tarify
 
 ## Vyskúšanie bez batérie (testovacia inštalácia)

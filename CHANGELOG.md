@@ -2,6 +2,20 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.6.0] – 2026-10-30
+
+### Pridané
+- **Ovládanie meniča** (nový krok sprievodcu): AI Energy zapisuje režim batérie do tvojho výberu (napr.
+  `input_select.deye_operation_mode`); v ďalšom kroku priradíš každému režimu AI Energy možnosť z výberu
+  (Predaj z batérie → Export from Battery, …). Samotný menič nastavuje tvoja automatizácia.
+- `switch.ai_energy_bateria_riadenie` – predvolene **vypnuté** (len odporúča).
+- **Ručný režim** `select.ai_energy_bateria_rezim` (Auto / konkrétny režim) na `select.ai_energy_bateria_rucne_na`
+  (1 h, 2 h, 4 h, do ďalšej NT, natrvalo) – potom sa vráti na Auto.
+- Voliteľne **nabíjací prúd zo siete** (A): podľa nabíjacieho výkonu, spoločného kábla s autom (batéria má prednosť)
+  a ističa; zníženie hneď, zvýšenie o ≥ 10 A najskôr po 2 min.
+- `sensor.ai_energy_odporucany_rezim` má atribúty `aplikovany_rezim`, `rucne`, `rucne_do`.
+- Igy Battery Action Card: sekcia **Menič** – režim (Auto / ručne), na ako dlho, Riadiť menič.
+
 ## [0.5.0] – 2026-10-29
 
 ### Pridané
