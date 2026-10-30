@@ -5,6 +5,11 @@
     "frontend",
     "recorder"
   ],
+  "categories": [
+    "energy.solar_batteries",
+    "energy.energy_prices",
+    "energy.ev_charging"
+  ],
   "codeowners": [
     "@Igypop78"
   ],
