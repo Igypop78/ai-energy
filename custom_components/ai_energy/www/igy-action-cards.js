@@ -7,7 +7,7 @@
  */
 (function () {
   'use strict';
-  const VERSION = '1.1.0';
+  const VERSION = '1.1.1';
   const E = {
     mode: 'sensor.ai_energy_odporucany_rezim', why: 'sensor.ai_energy_dovod', plan: 'sensor.ai_energy_plan',
     minSoc: 'number.ai_energy_min_soc', maxSoc: 'number.ai_energy_max_soc', prah: 'number.ai_energy_prah_predaja',
@@ -164,7 +164,7 @@
       body += `<div class="sub">Nastavenia</div>`
         + this._slider(E.minSoc, 'Min SOC', '#64d2ff', '%')
         + this._slider(E.maxSoc, 'Max SOC nabíjania zo siete', '#ff453a', '%')
-        + this._stepper(E.prah, 'Min. predajná cena', 'pod ňou sa z batérie nepredáva', 5, kwh)
+        + this._stepper(E.prah, 'Min. predajná cena', this._prahHint(pa), 5, kwh)
         + `<div class="more" data-more>${this._more ? '▾' : '▸'} Pokročilé</div>`;
       if (this._more) {
         body += this._stepper(E.chargeKw, 'Nabíjací výkon zo siete', '', 0.5, (v) => fmt(v, 1) + ' kW')
@@ -173,6 +173,17 @@
       this._shell('Batéria', 'mdi:home-battery', pill, body);
     }
   }
+
+  // či min. predajná cena práve niečo mení: predaj v okne určuje aj množstvo energie (top N najdrahších úsekov)
+  IgyBatteryActionCard.prototype._prahHint = function (pa) {
+    const prah = this._v(E.prah), now = Date.now() / 1000;
+    const w = (pa.okna || []).find((x) => x.od <= now && now < x.do);
+    if (prah == null || !w) return 'pod ňou sa z batérie nepredáva';
+    const k = (v) => fmt(v / 1000, 3);
+    if (!w.hranica) return `v tomto okne nie je nič na predaj nad ${k(prah)} €/kWh`;
+    if (w.hranica > prah + 0.5) return `teraz nič nemení – predáva sa od ${k(w.hranica)} €/kWh (energie je menej než drahých úsekov)`;
+    return 'teraz obmedzuje predaj – lacnejšie úseky sa nepredajú';
+  };
 
   IgyBatteryActionCard.prototype._wireExtra = function (r) {
     const sel = r.querySelector('[data-batmode]');

@@ -100,13 +100,13 @@ ak ich máš.
 5. **Batéria a spotreba domu** – SOC, kapacita, výkon nabíjania a predaja, spotreba domu v **kWh/deň**
    a voliteľne senzor spotreby (priemer z posledných 7 dní).
 6. **Fotovoltika** – predpoveď Solcast a voliteľne okamžitý výkon FVE.
-7. **Nabíjačka auta** – zapnutie nabíjania, prúd, fázy, stav auta. Pri výbere režimu (SmartEVSE) ďalší krok
-   ponúkne jeho režimy na výber (Normal / Off).
-7a. **Ovládanie meniča** – výber režimu (napr. `input_select.deye_operation_mode`), priradenie režimov,
+7. **Ovládanie meniča** – výber režimu (napr. `input_select.deye_operation_mode`), priradenie režimov,
    voliteľne nabíjací prúd zo siete a napätie batérie.
-8. **Istič a elektromer** – hlavný istič v A (napr. 25 pre 3×25 A), meranie odberu zo siete;
+8. **Nabíjačka auta** – zapnutie nabíjania, prúd, fázy, stav auta. Pri výbere režimu (SmartEVSE) ďalší krok
+   ponúkne jeho režimy na výber (Normal / Off).
+9. **Istič a elektromer** – hlavný istič v A (napr. 25 pre 3×25 A), meranie odberu zo siete;
    v *Pokročilých* rezerva ističa a spoločný limit batérie a auta.
-9. **Hotovo** – zhrnutie a čo ďalej.
+10. **Hotovo** – zhrnutie a čo ďalej.
 
 Všetko sa dá neskôr zmeniť: **Nastavenia → Zariadenia a služby → AI Energy → Konfigurovať** – ponuka s rovnakými časťami.
 

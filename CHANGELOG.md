@@ -2,6 +2,13 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.6.1] – 2026-10-30
+
+### Zmenené
+- Igy Battery Action Card pri **Min. predajnej cene** ukazuje, či práve niečo mení: predaj v okne určuje aj
+  množstvo energie v batérii (predáva sa len v najdrahších úsekoch, na ktoré energia stačí), takže zmena
+  min. ceny pod predajnú hranicu plán nezmení.
+
 ## [0.6.0] – 2026-10-30
 
 ### Pridané
