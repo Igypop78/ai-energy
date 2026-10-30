@@ -2,6 +2,15 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.6.2] – 2026-10-30
+
+### Opravené
+- Igy Battery / EV Action Card: v tmavom režime bol rozbaľovací zoznam režimu nečitateľný (svetlý text na svetlom pozadí);
+  zoznam aj výber času sa teraz riadia témou HA.
+
+### Zmenené
+- Manifest: kategórie integrácie (energia – batérie, ceny, nabíjanie áut).
+
 ## [0.6.1] – 2026-10-30
 
 ### Zmenené

@@ -7,7 +7,7 @@
  */
 (function () {
   'use strict';
-  const VERSION = '1.1.1';
+  const VERSION = '1.1.2';
   const E = {
     mode: 'sensor.ai_energy_odporucany_rezim', why: 'sensor.ai_energy_dovod', plan: 'sensor.ai_energy_plan',
     minSoc: 'number.ai_energy_min_soc', maxSoc: 'number.ai_energy_max_soc', prah: 'number.ai_energy_prah_predaja',
@@ -61,9 +61,10 @@
     .tgl { position: relative; width: 44px; height: 26px; border-radius: 13px; background: rgba(127,127,127,.35); cursor: pointer; flex: none; transition: background .15s; }
     .tgl:after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left .15s; }
     .tgl.on { background: #30d158; } .tgl.on:after { left: 21px; }
-    input[type=time] { font: inherit; font-weight: 600; color: var(--primary-text-color); background: var(--hc-surface, rgba(127,127,127,.15)); border: 0; border-radius: 9px; padding: 5px 10px; color-scheme: light dark; }
+    input[type=time] { font: inherit; font-weight: 600; color: var(--primary-text-color); background: var(--hc-surface, rgba(127,127,127,.15)); border: 0; border-radius: 9px; padding: 5px 10px; }
     .more { font-size: 12px; color: var(--primary-color); cursor: pointer; padding: 6px 2px 0; user-select: none; }
-    select.md { font: inherit; font-size: 14px; font-weight: 600; color: var(--primary-text-color); background: var(--hc-surface, rgba(127,127,127,.15)); border: 0; border-radius: 9px; padding: 6px 10px; color-scheme: light dark; max-width: 60%; }
+    select.md { font: inherit; font-size: 14px; font-weight: 600; color: var(--primary-text-color); background: var(--hc-surface, rgba(127,127,127,.15)); border: 0; border-radius: 9px; padding: 6px 10px; max-width: 60%; }
+    select.md option { color: var(--primary-text-color); background: var(--card-background-color, #1c1c1e); }
     .tag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 6px; background: rgba(255,159,10,.2); color: #ff9f0a; margin-left: 6px; }
     .msg { font-size: 13px; color: var(--secondary-text-color); padding: 10px 2px 2px; line-height: 1.4; }
   `;
@@ -81,7 +82,8 @@
     _sw(id, on) { return this._call('switch', on ? 'turn_on' : 'turn_off', { entity_id: id }); }
     _shell(title, icon, pill, body) {
       if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
-      this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card><div class="hl"><ha-icon icon="${icon}"></ha-icon>${esc(this._cfg.title || title)}${pill || ''}</div>${body}</ha-card>`;
+      const dark = !!(this._hass.themes && this._hass.themes.darkMode);
+      this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card style="color-scheme:${dark ? 'dark' : 'light'}"><div class="hl"><ha-icon icon="${icon}"></ha-icon>${esc(this._cfg.title || title)}${pill || ''}</div>${body}</ha-card>`;
       this._wire();
     }
     _slider(id, label, color, unit, fmtv) {
@@ -120,7 +122,7 @@
       if (this._wireExtra) this._wireExtra(r);
     }
     _changed(ids) {
-      const sig = ids.map((id) => { const s = this._s(id); return s ? s.last_updated + s.state : '-'; }).join('|') + '|' + this._more;
+      const sig = ids.map((id) => { const s = this._s(id); return s ? s.last_updated + s.state : '-'; }).join('|') + '|' + this._more + '|' + !!(this._hass.themes && this._hass.themes.darkMode);
       if (sig === this._sig) return false; this._sig = sig; return true;
     }
   }
