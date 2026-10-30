@@ -14,6 +14,7 @@ def _states(hass):
     hass.states.async_set("sensor.okte_prices_tomorrow", "unknown")
     hass.states.async_set("sensor.battery_soc", "50", {"device_class": "battery", "unit_of_measurement": "%"})
     hass.states.async_set("sensor.solcast_pv_forecast_forecast_today", "20")
+    hass.states.async_set("input_select.deye_operation_mode", "Normal", {"options": ["Normal", "Export Now", "Export from Battery", "Zero Export", "Charge from Grid", "Grid Only"]})
     hass.states.async_set("select.smartevse_mode", "Off", {"options": ["Off", "Normal", "Solar", "Smart"]})
     hass.states.async_set("number.smartevse_charge_current_override", "16")
     hass.states.async_set("sensor.smartevse_evplugstate", "Connected")
@@ -49,6 +50,17 @@ async def test_full_wizard(hass):
         )
         assert r["step_id"] == "fve"
         r = await hass.config_entries.flow.async_configure(r["flow_id"], {"pv_forecast_today": "sensor.solcast_pv_forecast_forecast_today"})
+        assert r["step_id"] == "menic"
+        r = await hass.config_entries.flow.async_configure(r["flow_id"], {"inverter_mode_entity": "input_select.deye_operation_mode", "battery_voltage": 51})
+        assert r["step_id"] == "menic_mapovanie"
+        sch = {str(k): k for k in r["data_schema"].schema}
+        assert sch["inverter_option_predaj"].default() == "Export from Battery"
+        assert sch["inverter_option_nabijanie"].default() == "Charge from Grid"
+        r = await hass.config_entries.flow.async_configure(
+            r["flow_id"],
+            {"inverter_option_predaj": "Export from Battery", "inverter_option_predaj_fve": "Export Now", "inverter_option_nabijanie": "Charge from Grid",
+             "inverter_option_siet": "Grid Only", "inverter_option_bez_pretokov": "Zero Export", "inverter_option_normal": "Normal"},
+        )
         assert r["step_id"] == "auto"
         r = await hass.config_entries.flow.async_configure(
             r["flow_id"],
@@ -75,6 +87,7 @@ async def test_full_wizard(hass):
     d = r["data"]
     assert d["price_nt"] == 120 and d["price_vt"] == 210 and d["sell_fee"] == 15
     assert d["ev_on_option"] == "Normal" and d["ev_off_option"] == "Off"
+    assert d["inverter_option_siet"] == "Grid Only"
     assert d["cable_kw"] == 12 and d["breaker_a"] == 25 and d["house_kwh_day"] == 18
 
 
@@ -95,6 +108,8 @@ async def test_wizard_without_pv_and_ev_and_fixed_sell(hass):
         r = await hass.config_entries.flow.async_configure(
             r["flow_id"], {"soc_entity": "sensor.battery_soc", "capacity_kwh": 10, "charge_kw": 3, "export_kw": 3, "house_kwh_day": 12}
         )
+        assert r["step_id"] == "menic"
+        r = await hass.config_entries.flow.async_configure(r["flow_id"], {"battery_voltage": 51})
         assert r["step_id"] == "hotovo"
         r = await hass.config_entries.flow.async_configure(r["flow_id"], {})
     d = r["data"]
