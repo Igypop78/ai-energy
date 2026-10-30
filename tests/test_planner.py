@@ -181,3 +181,22 @@ def test_single_tariff_plans_without_grid_charging():
     _, p = run(ts(28, 12, 50), 80, cfg=cfg)
     assert p.sloty and not any(a in ("N", "G") for _, _, a in p.sloty)
     assert any(a == "P" for _, _, a in p.sloty)  # večer predá to, čo v batérii je
+
+
+def test_nt_charges_for_house_when_cheaper_than_vt():
+    # nič na predaj (ceny pod prahom) – v noci sa batéria nabije na spotrebu domu do poobedňajšej NT
+    flat = lambda h: 150
+    cfg = _cfg(house_kw=0.8)
+    _, p = run(ts(28, 22), 20, price_fn=flat, cfg=cfg)
+    rano = next(w for w in p.okna if w.nt_od == ts(28, 23, 45))
+    need = 0.8 * 8 / 34 * 100  # 05:45–13:45 VT, 0,8 kW, bez slnka
+    assert rano.ciel == pytest.approx(cfg.min_soc + need, abs=1.5)
+    assert any(a == "N" for t, _, a in p.sloty if ts(28, 23, 45) <= t < ts(29, 5, 45))
+    assert not any(a == "P" for _, _, a in p.sloty)
+
+
+def test_no_house_charging_when_vt_is_cheap():
+    cfg = _cfg(house_kw=0.8, price_vt=150)  # 120/0,9 + 45 = 178 > 150 → neoplatí sa
+    _, p = run(ts(28, 22), 20, price_fn=lambda h: 150, cfg=cfg)
+    rano = next(w for w in p.okna if w.nt_od == ts(28, 23, 45))
+    assert rano.ciel == pytest.approx(cfg.min_soc, abs=0.5)

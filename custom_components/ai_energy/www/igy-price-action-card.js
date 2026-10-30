@@ -15,7 +15,7 @@
  */
 (function () {
   'use strict';
-  const VERSION = '3.0.0';
+  const VERSION = '3.0.1';
   // cena: neutrálna škála (nekoliduje s farbami akcií) – lacné svetlé, bežné sivé, nad prahom predaja zelená (ako predaj)
 const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' };
   const ACT = {
@@ -124,11 +124,12 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
       let b = [];
       sl.forEach((s) => { const l = b[b.length - 1]; if (l && l.c === s[2] && l.sl[l.sl.length - 1][0] + 900000 === s[0]) l.sl.push(s); else b.push({ c: s[2], sl: [s], mix: {} }); });
       const lim = Math.floor((+this._cfg.merge || 0) / 15);   // počet 15-min slotov; 0 = nezlučovať
+      const now = Date.now(), isCur = (x) => x.sl[0][0] <= now && now < x.sl[x.sl.length - 1][0] + 900000;
       let ch = true;
       while (ch) {
         ch = false;
         for (let i = 0; lim > 0 && i < b.length && b.length > 1; i++) {
-          if (b[i].sl.length > lim) continue;
+          if (b[i].sl.length > lim || isCur(b[i])) continue;   // prebiehajúca akcia sa nikdy nezlučuje
           const j = i > 0 ? i - 1 : i + 1, t = b[j];
           if (t.sl[0][0] > b[i].sl[0][0]) t.sl = b[i].sl.concat(t.sl); else t.sl = t.sl.concat(b[i].sl);
           t.mix[b[i].c] = 1; Object.assign(t.mix, b[i].mix); b.splice(i, 1); ch = true; break;

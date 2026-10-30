@@ -2,6 +2,17 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.7.0] – 2026-10-30
+
+### Zmenené
+- **Nabíjanie v NT aj na spotrebu domu**: cieľ NT pokryje okrem predajov aj spotrebu domu vo VT do ďalšej NT
+  (mínus slnko), ak je to lacnejšie – cena NT / 0,9 + opotrebenie 45 €/MWh < cena VT (pri ZSE DD3 ≈ 178 < 210).
+  Predaj má pri obmedzenej kapacite stále prednosť.
+
+### Opravené
+- Igy Price Action Card: práve prebiehajúca akcia sa už nezlučuje do susedného bloku
+  (napr. 15 min nabíjania sa ukazovalo ako „Dom zo siete“).
+
 ## [0.6.2] – 2026-10-30
 
 ### Opravené

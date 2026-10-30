@@ -57,6 +57,13 @@ class PlanConfig:
     sell_fixed: float = 0.0  # €/MWh
     sell_bands: Sequence[tuple[int, int]] = ()  # pásma s inou výkupnou cenou (minúty od polnoci)
     sell_band_price: float = 0.0  # €/MWh
+    wear: float = 45.0  # opotrebenie batérie €/MWh
+    charge_eff: float = 0.9
+
+    @property
+    def house_shift(self) -> bool:
+        """Oplatí sa v NT nabiť batériu aj na spotrebu domu vo VT (NT so stratami + opotrebenie < VT)?"""
+        return self.price_nt / self.charge_eff + self.wear < self.price_vt
 
     @property
     def kwh_slot(self) -> float:
@@ -209,8 +216,11 @@ def plan(
         nad = [x for x in psl if _cmp(x, cfg) >= cfg.threshold]
         pb_spolu = sum(x["pb"] for x in psl)
         kum = maxk = 0.0
+        vt_end = w.nt2 if w.nt2 else w.do
         for y in psl:
-            kum = max(kum - y["pb"] + (kwh_slot if _cmp(y, cfg) >= cfg.threshold else 0.0), -(100 - cfg.min_soc) / 100 * kap)
+            # spotreba domu vo VT časti okna (čo nepokryje slnko) – ak je lacnejšie nabiť ju v NT
+            dom = max(0.0, cfg.house_slot - y["pv"]) if cfg.house_shift and w.nt_do <= y["t"] < vt_end else 0.0
+            kum = max(kum - y["pb"] + dom + (kwh_slot if _cmp(y, cfg) >= cfg.threshold else 0.0), -(100 - cfg.min_soc) / 100 * kap)
             maxk = max(maxk, kum)
         w.ciel = min(cfg.max_soc, cfg.min_soc + maxk / kap * 100) if psl else cfg.max_soc
         e_ciel = (w.ciel - cfg.min_soc) / 100 * kap

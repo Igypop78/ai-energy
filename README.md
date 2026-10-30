@@ -34,7 +34,8 @@ min SOC, max SOC nabíjania zo siete, nabíjací výkon, korekcia predpovede FVE
 
 - Deň sa delí na **okná** podľa nízkej tarify. V každom okne sa batéria predá v **najdrahších 15-min slotoch**
   – toľkých, koľko energie bude k dispozícii (predajná hranica).
-- V NT sa nabije len **toľko, koľko treba** na predaje v ďalšom okne (mínus slnko, ktoré príde pred nimi).
+- V NT sa nabije len **toľko, koľko treba** na predaje v ďalšom okne a – ak je to lacnejšie ako vysoká tarifa –
+  aj na **spotrebu domu do ďalšej NT** (mínus slnko, ktoré príde). Oplatí sa, keď cena NT so stratami + opotrebenie < cena VT.
 - Energia, ktorá v okne ostane, sa **prenáša** do ďalšieho okna.
 - V noci sa predá aj drahý slot, ak sa batéria potom **stihne dobiť** na ranný cieľ.
 - Z batérie sa **nikdy nepredáva pod min SOC**. Keď je batéria na minime a svieti slnko, predáva sa **len FVE**.
