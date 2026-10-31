@@ -2,6 +2,16 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.8.1] – 2026-10-31
+
+### Zmenené
+- **Min SOC = kde má batéria skončiť pred ďalšou NT**: predaj z batérie skončí skôr, aby po spotrebe domu
+  (mínus slnko) do ďalšieho nabíjania v NT ostala batéria na min SOC. Odporúčanie pri tom píše, koľko kWh
+  necháva pre dom.
+- Min SOC nie je tvrdá hranica: pri väčšej spotrebe môže dom ísť aj pod ňu, režim sa na „Dom zo siete“ kvôli tomu
+  nemení (to z 0.8.0 je zrušené – tvrdú hranicu drží menič).
+- Entita `number.ai_energy_min_soc` sa volá „Min SOC na konci dňa“.
+
 ## [0.8.0] – 2026-10-31
 
 ### Zmenené

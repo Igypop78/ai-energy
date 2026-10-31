@@ -502,7 +502,7 @@
         "name": "Min. predajná cena"
       },
       "min_soc": {
-        "name": "Min SOC"
+        "name": "Min SOC na konci dňa"
       },
       "max_soc": {
         "name": "Max SOC nabíjania zo siete"

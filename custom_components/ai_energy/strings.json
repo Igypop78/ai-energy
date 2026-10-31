@@ -502,7 +502,7 @@
         "name": "Minimum selling price"
       },
       "min_soc": {
-        "name": "Minimum SOC"
+        "name": "Min SOC at end of day"
       },
       "max_soc": {
         "name": "Max SOC from grid"

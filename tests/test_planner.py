@@ -78,9 +78,11 @@ def test_sells_down_to_min_soc_in_evening():
     # poobede je SOC 63 %, poobedné NT dobije, večer celé nad prahom -> predá až po min
     _, p = run(ts(28, 12, 50), 63)
     predaje = [s for s in p.sloty if ts(28, 16) <= s[0] < ts(28, 23, 45) and s[2] == "P"]
-    assert len(predaje) >= 10
-    # po poslednom predaji je batéria na min SOC (dom potom ide z batérie – to min SOC nestráži)
-    assert predaje[-1][1] == pytest.approx(CFG.min_soc, abs=1)
+    assert len(predaje) >= 8
+    # predaj skončí tak, aby po spotrebe domu do nočnej NT (23:45) bola batéria na min SOC
+    pred_nt = [x for x in p.sloty if x[0] < ts(28, 23, 45)][-1]
+    assert pred_nt[1] == pytest.approx(CFG.min_soc, abs=2)
+    assert predaje[-1][1] > CFG.min_soc + 3  # rezerva pre dom
 
 
 def test_never_sells_below_min():
@@ -215,12 +217,14 @@ def test_window_start_aligned_to_slot_high_min_soc():
     assert rec.rezim == P.MODE_CHARGE  # plán nabíja → odporúčanie tiež
 
 
-def test_house_never_below_min_soc():
-    # po predaji ide dom z batérie len po min SOC, potom zo siete (G); odporúčanie tiež
-    _, p = run(ts(28, 12, 50), 63)
-    for t, soc, a in p.sloty:
-        assert soc >= CFG.min_soc - 0.01
-    assert any(a == "G" for t, _, a in p.sloty if ts(28, 16) <= t < ts(28, 23, 45))
-    sl, p2 = run(ts(28, 23), CFG.min_soc)
-    rec = P.recommend(p2, sl, ts(28, 23), CFG.min_soc, CFG, TZ)
-    assert rec.rezim == P.MODE_GRID and "min SOC" in rec.dovod
+def test_min_soc_is_end_target_and_house_may_go_below():
+    # pri predaji sa nechá rezerva pre dom; odporúčanie to vysvetlí
+    now = ts(28, 21, 0)
+    sl, p = run(now, 30)
+    rez = P.house_reserve(sl, next(w for w in p.okna if w.od <= now < w.do), int(now) + 900, CFG)
+    assert rez > 1.5  # ~0,8 kW do 23:45
+    rec = P.recommend(p, sl, now, 30, CFG, TZ)
+    assert rec.rezim != P.MODE_SELL and "pre dom" in rec.dovod
+    # dom môže ísť aj pod min SOC – odporúčanie nemení režim na „dom zo siete“
+    rec2 = P.recommend(p, sl, now, CFG.min_soc - 5, CFG, TZ)
+    assert rec2.rezim == P.MODE_NORMAL

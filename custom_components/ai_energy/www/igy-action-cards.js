@@ -7,7 +7,7 @@
  */
 (function () {
   'use strict';
-  const VERSION = '1.1.3';
+  const VERSION = '1.1.4';
   const E = {
     mode: 'sensor.ai_energy_odporucany_rezim', why: 'sensor.ai_energy_dovod', plan: 'sensor.ai_energy_plan',
     minSoc: 'number.ai_energy_min_soc', maxSoc: 'number.ai_energy_max_soc', prah: 'number.ai_energy_prah_predaja',
@@ -170,7 +170,8 @@
         body += this._toggle(E.batCtl, '<b>Riadiť menič</b>', ctl ? 'AI Energy posiela režim do meniča' : 'vypnuté = len odporúča, nič neprepína');
       }
       body += `<div class="sub">Nastavenia</div>`
-        + this._slider(E.minSoc, 'Min SOC', '#64d2ff', '%')
+        + this._slider(E.minSoc, 'Min SOC na konci dňa', '#64d2ff', '%')
+        + `<div class="small" style="margin:-2px 2px 6px">predaj skončí tak, aby po spotrebe domu do ďalšej NT ostala batéria na tejto hodnote</div>`
         + this._slider(E.maxSoc, 'Max SOC nabíjania zo siete', '#ff453a', '%')
         + this._stepper(E.prah, 'Min. predajná cena', this._prahHint(pa), 5, kwh)
         + `<div class="more" data-more>${this._more ? '▾' : '▸'} Pokročilé</div>`;

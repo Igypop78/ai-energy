@@ -234,7 +234,8 @@ def plan(
         else:
             e0 = max(0.0, carry)
             e = max(e0, min(e_ciel, e0 + nt_h * cfg.charge_kw)) + pb_spolu
-        n = math.ceil(e / kwh_slot - 1e-9) if e > 0 else 0
+        e_sell = e - house_reserve(slots, w, max(start, w.nt_do), cfg)
+        n = math.ceil(e_sell / kwh_slot - 1e-9) if e_sell > 0 else 0
         top = sorted(nad, key=lambda x: -_sell(x, cfg))[:n]
         top_t = {int(x["t"]) for x in top}
         extra = {int(x["t"]) for x in nad if w.nt2 and x["t"] >= w.nt2} - top_t
@@ -244,7 +245,7 @@ def plan(
         vt_od = max(start, w.nt_do)
         vt_do = w.nt2 if w.nt2 else w.do
         vt_h = max(0.0, (vt_do - vt_od) / 3600)
-        predane = min(e, len(top) * kwh_slot)
+        predane = min(max(0.0, e_sell), len(top) * kwh_slot)
         carry = max(0.0, e - predane - cfg.house_kw * vt_h)
 
     # 2) simulácia slot po slote
@@ -260,7 +261,7 @@ def plan(
         ntw = next((w for w in windows if w.nt_od <= t < w.nt_do), None)
         je_nt = ntw is not None
         ciel = ntw.ciel if ntw else 0.0
-        avail = (s - cfg.min_soc) / 100 * kap
+        avail = (s - cfg.min_soc) / 100 * kap - (house_reserve(slots, pool, t + SLOT, cfg) if t in pool.predaj else 0.0)
         out.fve_kwh += x["pv"]
         noc_ok = _night_ok(t, s, avail, pool, ntw, cfg)
         energia_ok = avail >= 0.3 if posledna == "predaj" else (avail >= 0.3 and avail + x["pb"] >= kwh_slot)
@@ -294,11 +295,9 @@ def plan(
                 if _sell(x, cfg) > 0:
                     out.trzba += _sell(x, cfg) * pretok / 1000
                 akcia = "F" if nabite >= 0.1 else ("O" if pretok >= 0.1 else "D")
-            elif s <= cfg.min_soc + 0.05:
-                akcia = "G"  # min SOC je spodná hranica aj pre dom – zvyšok zo siete
             else:
-                akcia = "D"
-                s = max(cfg.min_soc, s + net / kap * 100)
+                akcia = "D"  # dom môže ísť aj pod min SOC (tvrdú hranicu drží menič)
+                s = max(5.0, s + net / kap * 100)
         posledna = "predaj" if akcia == "P" else akcia
         out.sloty.append([t, round(s, 1), akcia])
         out.koniec = t + SLOT
@@ -307,6 +306,15 @@ def plan(
     out.nakup_kwh = out.nakup_kwh / 0.9
     out.nakup_eur = out.nakup_kwh * cfg.price_nt / 1000
     return out
+
+
+def house_reserve(slots: Sequence[Mapping[str, float]], w: Window, t_from: int, cfg: PlanConfig) -> float:
+    """Energia (kWh), ktorú treba nechať v batérii pre dom od t_from do ďalšieho nabíjania v NT (mínus slnko).
+
+    Min SOC = kde má batéria skončiť na konci okna po predaji aj spotrebe domu.
+    """
+    vt_end = w.nt2 if w.nt2 else w.do
+    return sum(max(0.0, cfg.house_slot - x["pv"]) for x in slots if t_from <= x["t"] < vt_end and x["t"] >= w.nt_do)
 
 
 def _night_ok(t: int, s: float, avail: float, pool: Window, ntw: Window | None, cfg: PlanConfig) -> bool:
@@ -353,7 +361,8 @@ def recommend(
     if pool is None:
         return Recommendation(MODE_NORMAL, "Bez cien – bežná prevádzka", None)
 
-    avail = (soc - cfg.min_soc) / 100 * cfg.capacity_kwh
+    rezerva = house_reserve(slots, pool, slot0 + SLOT, cfg)
+    avail = (soc - cfg.min_soc) / 100 * cfg.capacity_kwh - rezerva
     pb_teraz = cur["pb"] if cur else 0.0
     v_plane = slot0 in pool.predaj
     noc_ok = _night_ok(slot0, soc, avail, pool, ntw, cfg)
@@ -386,9 +395,9 @@ def recommend(
         return Recommendation(MODE_NO_EXPORT, f"Cena {c} € ≤ {cfg.sell_fee:.0f} € – predaj by bol v strate, bez pretokov", pool)
     if je_nt:
         return Recommendation(MODE_GRID, f"NT: SOC {s_txt} ≥ cieľ {ciel:.0f} % – dom zo siete, batéria sa šetrí", pool)
-    pod_min = soc <= cfg.min_soc + (cfg.hysteresis_soc if current_mode == MODE_GRID else 0.0)
-    if pod_min and prebytok < 0.3:
-        return Recommendation(MODE_GRID, f"Batéria na min SOC ({s_txt} / min {cfg.min_soc:.0f} %) – dom zo siete", pool)
+    if v_plane and not predaj and rezerva >= 0.3 and avail < cfg.kwh_slot:
+        do = datetime.fromtimestamp(pool.nt2 or pool.do, tz).strftime("%H:%M")
+        return Recommendation(MODE_NORMAL, f"Nepredávam – {rezerva:.1f} kWh nechávam pre dom do {do} (aby SOC skončil na min {cfg.min_soc:.0f} %)", pool)
     if v_plane and not noc_ok:
         return Recommendation(MODE_NORMAL, "Nočný predaj vynechaný – nestihlo by sa dobiť na ranný cieľ", pool)
     if pool.hranica > 0 and avail >= 1:

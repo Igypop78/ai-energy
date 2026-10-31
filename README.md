@@ -38,7 +38,8 @@ min SOC, max SOC nabíjania zo siete, nabíjací výkon, korekcia predpovede FVE
   aj na **spotrebu domu do ďalšej NT** (mínus slnko, ktoré príde). Oplatí sa, keď cena NT so stratami + opotrebenie < cena VT.
 - Energia, ktorá v okne ostane, sa **prenáša** do ďalšieho okna.
 - V noci sa predá aj drahý slot, ak sa batéria potom **stihne dobiť** na ranný cieľ.
-- Batéria **nikdy neklesne pod min SOC** – ani predajom, ani spotrebou domu (potom ide dom zo siete). Keď je batéria na minime a svieti slnko, predáva sa **len FVE**.
+- **Min SOC** je cieľ na konci okna: predaj skončí tak, aby po spotrebe domu do ďalšej NT ostala batéria na min SOC.
+  Nie je to tvrdá hranica – pri väčšej spotrebe môže ísť dom aj pod ňu (tvrdú hranicu drží menič). Keď je batéria na minime a svieti slnko, predáva sa **len FVE**.
 - Predvolená **min. predajná cena** = poplatok za predaj + cena NT so stratami + opotrebenie (45 €/MWh) + zisk (40 €/MWh).
 
 **Nabíjanie auta** (voliteľné, 4. krok sprievodcu)
