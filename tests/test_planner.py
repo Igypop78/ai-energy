@@ -179,7 +179,7 @@ def test_spot_sell_price_is_spot_minus_fee():
 def test_single_tariff_plans_without_grid_charging():
     cfg = _cfg(nt_intervals=())
     _, p = run(ts(28, 12, 50), 80, cfg=cfg)
-    assert p.sloty and not any(a in ("N", "G") for _, _, a in p.sloty)
+    assert p.sloty and not any(a == "N" for _, _, a in p.sloty)
     assert any(a == "P" for _, _, a in p.sloty)  # večer predá to, čo v batérii je
 
 
@@ -213,3 +213,14 @@ def test_window_start_aligned_to_slot_high_min_soc():
     assert rec.dovod != "Bez cien – bežná prevádzka"
     assert p.sloty[0][0] == ts(28, 14, 30)
     assert rec.rezim == P.MODE_CHARGE  # plán nabíja → odporúčanie tiež
+
+
+def test_house_never_below_min_soc():
+    # po predaji ide dom z batérie len po min SOC, potom zo siete (G); odporúčanie tiež
+    _, p = run(ts(28, 12, 50), 63)
+    for t, soc, a in p.sloty:
+        assert soc >= CFG.min_soc - 0.01
+    assert any(a == "G" for t, _, a in p.sloty if ts(28, 16) <= t < ts(28, 23, 45))
+    sl, p2 = run(ts(28, 23), CFG.min_soc)
+    rec = P.recommend(p2, sl, ts(28, 23), CFG.min_soc, CFG, TZ)
+    assert rec.rezim == P.MODE_GRID and "min SOC" in rec.dovod

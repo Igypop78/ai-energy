@@ -2,6 +2,17 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.8.0] – 2026-10-31
+
+### Zmenené
+- **Min SOC je spodná hranica aj pre dom**: batéria sa pod min SOC nevybije ani spotrebou domu. Po dosiahnutí
+  minima ide dom zo siete (v pláne „Dom zo siete, batéria stojí“, do meniča režim *Dom zo siete*);
+  späť na batériu až pri SOC ≥ min + 3 % alebo pri prebytku FVE.
+
+### Opravené
+- Igy Battery / EV Action Card: po prekreslení (napr. pri prechode myšou) sa strácal vzhľad z témy
+  (card-mod, priehľadnosť) – karta sa už nevytvára znova, mení sa len jej obsah.
+
 ## [0.7.1] – 2026-10-31
 
 ### Opravené

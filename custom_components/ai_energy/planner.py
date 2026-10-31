@@ -294,9 +294,11 @@ def plan(
                 if _sell(x, cfg) > 0:
                     out.trzba += _sell(x, cfg) * pretok / 1000
                 akcia = "F" if nabite >= 0.1 else ("O" if pretok >= 0.1 else "D")
+            elif s <= cfg.min_soc + 0.05:
+                akcia = "G"  # min SOC je spodná hranica aj pre dom – zvyšok zo siete
             else:
                 akcia = "D"
-                s = max(5.0, s + net / kap * 100)
+                s = max(cfg.min_soc, s + net / kap * 100)
         posledna = "predaj" if akcia == "P" else akcia
         out.sloty.append([t, round(s, 1), akcia])
         out.koniec = t + SLOT
@@ -384,6 +386,9 @@ def recommend(
         return Recommendation(MODE_NO_EXPORT, f"Cena {c} € ≤ {cfg.sell_fee:.0f} € – predaj by bol v strate, bez pretokov", pool)
     if je_nt:
         return Recommendation(MODE_GRID, f"NT: SOC {s_txt} ≥ cieľ {ciel:.0f} % – dom zo siete, batéria sa šetrí", pool)
+    pod_min = soc <= cfg.min_soc + (cfg.hysteresis_soc if current_mode == MODE_GRID else 0.0)
+    if pod_min and prebytok < 0.3:
+        return Recommendation(MODE_GRID, f"Batéria na min SOC ({s_txt} / min {cfg.min_soc:.0f} %) – dom zo siete", pool)
     if v_plane and not noc_ok:
         return Recommendation(MODE_NORMAL, "Nočný predaj vynechaný – nestihlo by sa dobiť na ranný cieľ", pool)
     if pool.hranica > 0 and avail >= 1:

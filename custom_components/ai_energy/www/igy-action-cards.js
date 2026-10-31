@@ -7,7 +7,7 @@
  */
 (function () {
   'use strict';
-  const VERSION = '1.1.2';
+  const VERSION = '1.1.3';
   const E = {
     mode: 'sensor.ai_energy_odporucany_rezim', why: 'sensor.ai_energy_dovod', plan: 'sensor.ai_energy_plan',
     minSoc: 'number.ai_energy_min_soc', maxSoc: 'number.ai_energy_max_soc', prah: 'number.ai_energy_prah_predaja',
@@ -81,9 +81,15 @@
     _num(id, v) { return this._call('number', 'set_value', { entity_id: id, value: v }); }
     _sw(id, on) { return this._call('switch', on ? 'turn_on' : 'turn_off', { entity_id: id }); }
     _shell(title, icon, pill, body) {
+      // ha-card sa vytvorí len raz – témy a card-mod štýlujú práve tento prvok; pri jeho výmene by sa štýl stratil
       if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
+      if (!this._card) {
+        this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card><div id="c"></div></ha-card>`;
+        this._card = this.shadowRoot.querySelector('ha-card');
+      }
       const dark = !!(this._hass.themes && this._hass.themes.darkMode);
-      this.shadowRoot.innerHTML = `<style>${CSS}</style><ha-card style="color-scheme:${dark ? 'dark' : 'light'}"><div class="hl"><ha-icon icon="${icon}"></ha-icon>${esc(this._cfg.title || title)}${pill || ''}</div>${body}</ha-card>`;
+      this._card.style.colorScheme = dark ? 'dark' : 'light';
+      this.shadowRoot.getElementById('c').innerHTML = `<div class="hl"><ha-icon icon="${icon}"></ha-icon>${esc(this._cfg.title || title)}${pill || ''}</div>${body}`;
       this._wire();
     }
     _slider(id, label, color, unit, fmtv) {
