@@ -228,3 +228,16 @@ def test_min_soc_is_end_target_and_house_may_go_below():
     # dom môže ísť aj pod min SOC – odporúčanie nemení režim na „dom zo siete“
     rec2 = P.recommend(p, sl, now, CFG.min_soc - 5, CFG, TZ)
     assert rec2.rezim == P.MODE_NORMAL
+
+
+def test_plan_and_recommendation_agree_near_nt_target():
+    # SOC 1 % pod cieľom NT: odporúčanie nenabíja (hysterézia) → plán tiež nie
+    cfg = _cfg(max_soc=100)
+    now = ts(28, 15, 15)
+    sl, p0 = run(now, 50, cfg=cfg)
+    w = next(x for x in p0.okna if x.nt_od <= now < x.nt_do)
+    soc = w.ciel - 1
+    sl, p = run(now, soc, cfg=cfg)
+    rec = P.recommend(p, sl, now, soc, cfg, TZ)
+    assert rec.rezim == P.MODE_GRID
+    assert p.sloty[0][2] == "G"

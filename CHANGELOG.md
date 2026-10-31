@@ -2,6 +2,13 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.8.2] – 2026-10-31
+
+### Opravené
+- Plán a odporúčanie sa rozchádzali tesne pod cieľom NT: odporúčanie s hysteréziou 3 % nenabíjalo
+  (napr. 99 % pri cieli 100 %), ale plán ukazoval nabíjanie. Plán teraz používa rovnakú hysteréziu
+  a dôvod píše, že do cieľa chýba menej ako 3 %.
+
 ## [0.8.1] – 2026-10-31
 
 ### Zmenené

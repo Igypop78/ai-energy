@@ -251,7 +251,7 @@ def plan(
     # 2) simulácia slot po slote
     out = Plan(sloty=[], okna=windows)
     s = soc
-    posledna = "predaj" if current_mode == MODE_SELL else ""
+    posledna = "predaj" if current_mode == MODE_SELL else ("N" if current_mode == MODE_CHARGE else "")
     hs = cfg.house_slot
     for x in slots:
         t = int(x["t"])
@@ -277,7 +277,7 @@ def plan(
             akcia = "E"
             out.predaj_kwh += x["pb"]
             out.trzba += _sell(x, cfg) * x["pb"] / 1000
-        elif je_nt and s < ciel:
+        elif je_nt and (s < ciel - cfg.hysteresis_soc or (posledna == "N" and s < ciel)):  # rovnaká hysterézia ako odporúčanie
             akcia = "N"
             kwh = min(cfg.charge_kw * SLOT / 3600 + x["pb"], (ciel - s) / 100 * kap)
             s += kwh / kap * 100
@@ -394,6 +394,8 @@ def recommend(
     if cur is not None and _sell(cur, cfg) <= 0 and pv_kw > 0.5:
         return Recommendation(MODE_NO_EXPORT, f"Cena {c} € ≤ {cfg.sell_fee:.0f} € – predaj by bol v strate, bez pretokov", pool)
     if je_nt:
+        if soc < ciel:
+            return Recommendation(MODE_GRID, f"NT: SOC {s_txt} je od cieľa {ciel:.0f} % menej ako {cfg.hysteresis_soc:.0f} % – nedobíja sa, dom zo siete", pool)
         return Recommendation(MODE_GRID, f"NT: SOC {s_txt} ≥ cieľ {ciel:.0f} % – dom zo siete, batéria sa šetrí", pool)
     if v_plane and not predaj and rezerva >= 0.3 and avail < cfg.kwh_slot:
         do = datetime.fromtimestamp(pool.nt2 or pool.do, tz).strftime("%H:%M")
