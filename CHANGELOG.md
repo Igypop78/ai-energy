@@ -2,6 +2,15 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.9.0] – 2026-10-31
+
+### Zmenené
+- Igy Battery Action Card → nadpis **AI nastavenia**.
+  - Pri SOC a dôvode **výkon batérie** s ukazovateľom 0–10 kW: zelená nabíja, červená vybíja.
+    Senzor sa nájde sám (napr. SmartShunt), dá sa zvoliť v nastavení karty (+ otočenie znamienka, rozsah stupnice).
+  - Všetko ostatné (menič, batéria, pokročilé) je pod tlačidlom **Nastavenia**, po načítaní vždy zbalené.
+  - Prepínač *Riadiť menič* z karty odstránený (entita `switch.ai_energy_bateria_riadenie` ostáva).
+
 ## [0.8.2] – 2026-10-31
 
 ### Opravené

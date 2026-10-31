@@ -7,7 +7,7 @@
  */
 (function () {
   'use strict';
-  const VERSION = '1.1.4';
+  const VERSION = '1.2.0';
   const E = {
     mode: 'sensor.ai_energy_odporucany_rezim', why: 'sensor.ai_energy_dovod', plan: 'sensor.ai_energy_plan',
     minSoc: 'number.ai_energy_min_soc', maxSoc: 'number.ai_energy_max_soc', prah: 'number.ai_energy_prah_predaja',
@@ -66,6 +66,11 @@
     select.md { font: inherit; font-size: 14px; font-weight: 600; color: var(--primary-text-color); background: var(--hc-surface, rgba(127,127,127,.15)); border: 0; border-radius: 9px; padding: 6px 10px; max-width: 60%; }
     select.md option { color: var(--primary-text-color); background: var(--card-background-color, #1c1c1e); }
     .tag { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 6px; background: rgba(255,159,10,.2); color: #ff9f0a; margin-left: 6px; }
+    .pw { text-align: right; margin-left: auto; }
+    .pv { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+    .pv span { font-size: 14px; font-weight: 600; margin-left: 2px; color: var(--secondary-text-color); }
+    .pbar { flex-basis: 100%; height: 8px; border-radius: 4px; background: rgba(127,127,127,.22); overflow: hidden; margin-top: 4px; }
+    .pbar i { display: block; height: 100%; border-radius: 4px; transition: width .4s; }
     .msg { font-size: 13px; color: var(--secondary-text-color); padding: 10px 2px 2px; line-height: 1.4; }
   `;
 
@@ -124,22 +129,31 @@
         this._num(id, Math.min(s.attributes.max ?? 1e9, Math.max(s.attributes.min ?? -1e9, Math.round(v * 1000) / 1000)));
       }));
       r.querySelectorAll('[data-sw]').forEach((el) => el.addEventListener('click', () => this._sw(el.dataset.sw, !el.classList.contains('on'))));
+      r.querySelectorAll('[data-set]').forEach((el) => el.addEventListener('click', () => { this._set = !this._set; this._sig = ''; this._render(); }));
       r.querySelectorAll('[data-more]').forEach((el) => el.addEventListener('click', () => { this._more = !this._more; this._sig = ''; this._render(); }));
       if (this._wireExtra) this._wireExtra(r);
     }
     _changed(ids) {
-      const sig = ids.map((id) => { const s = this._s(id); return s ? s.last_updated + s.state : '-'; }).join('|') + '|' + this._more + '|' + !!(this._hass.themes && this._hass.themes.darkMode);
+      const sig = ids.map((id) => { const s = this._s(id); return s ? s.last_updated + s.state : '-'; }).join('|') + '|' + this._more + '|' + this._set + '|' + !!(this._hass.themes && this._hass.themes.darkMode);
       if (sig === this._sig) return false; this._sig = sig; return true;
     }
   }
 
   // ------------------------------------------------------------------ batéria
   class IgyBatteryActionCard extends Base {
+    static getConfigElement() { return document.createElement('igy-battery-action-card-editor'); }
+    // výkon batérie: z nastavenia karty, inak prvý senzor výkonu batérie (SmartShunt, Deye…)
+    _powerId() {
+      if (this._cfg.power_entity) return this._cfg.power_entity;
+      const st = this._hass.states, ids = Object.keys(st).filter((id) => /^sensor\./.test(id) && /batt/.test(id) && /power/.test(id) && ['W', 'kW'].includes(st[id].attributes.unit_of_measurement));
+      return ids.find((id) => /smartshunt/.test(id)) || ids[0];
+    }
     _render() {
       if (!this._hass || !this._cfg) return;
-      if (!this._changed([E.mode, E.why, E.plan, E.minSoc, E.maxSoc, E.prah, E.chargeKw, E.pvCorr, E.batMode, E.batDur, E.batCtl])) return;
+      const pid = this._powerId();
+      if (!this._changed([E.mode, E.why, E.plan, E.minSoc, E.maxSoc, E.prah, E.chargeKw, E.pvCorr, E.batMode, E.batDur, E.batCtl, pid].filter(Boolean))) return;
       const m = this._s(E.mode);
-      if (!m) { this._shell('Batéria', 'mdi:home-battery', '', '<div class="msg">Nenašiel som AI Energy. Nainštaluj a nastav integráciu AI Energy.</div>'); return; }
+      if (!m) { this._shell('AI nastavenia', 'mdi:home-battery', '', '<div class="msg">Nenašiel som AI Energy. Nainštaluj a nastav integráciu AI Energy.</div>'); return; }
       const ap = m.attributes.aplikovany_rezim || m.state, man = !!m.attributes.rucne;
       const [mt, mc, me] = MODE[ap] || [ap, '#8e8e93', ''];
       const pill = `<span class="pill" style="background:${mc}26;color:${mc}">${me} ${esc(mt)}${man ? ' · ručne' : ''}</span>`;
@@ -150,36 +164,74 @@
         if (k > 0) { const d = new Date(sl[k][0] * 1000); next = `ďalej ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} ${ACT[sl[k][2]] || ''}`; }
       }
       const minS = this._v(E.minSoc);
-      const box = `<div class="box"><div><div class="big">${soc != null ? fmt(soc, 0) + ' %' : '–'}</div><div class="small">batéria${minS != null ? ' · min ' + fmt(minS, 0) + ' %' : ''}</div></div>
-        <div style="flex:1;min-width:0"><div class="why">${esc((this._s(E.why) || {}).state || '')}</div>${next ? `<div class="small">${esc(next)}</div>` : ''}</div></div>`;
-      const kwh = (v) => fmt(v / 1000, 3) + ' €/kWh';
-      let body = box;
-      const bm = this._s(E.batMode);
-      if (bm) {
-        const ctl = (this._s(E.batCtl) || {}).state === 'on';
-        const opts = [['auto', 'Auto (AI)']].concat(Object.keys(MODE).map((k) => [k, MODE[k][0]]));
-        let until = '';
-        if (bm.state !== 'auto') {
-          const u = bm.attributes.rucne_do; const d = u ? new Date(u) : null;
-          until = d ? `do ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : 'natrvalo';
-        }
-        body += `<div class="sub">Menič${bm.state !== 'auto' ? `<span>ručne ${esc(until)}</span>` : ''}</div>`
-          + `<div class="row"><span class="l">Režim</span><select class="md" data-batmode>${opts.map(([k, t]) => `<option value="${k}" ${k === bm.state ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`;
-        const dur = (this._s(E.batDur) || {}).state;
-        body += `<div class="row"><span class="l">Ručný režim na<small>po uplynutí sa vráti na Auto</small></span></div><div class="chips" style="margin-top:-4px">${DUR.map(([k, t]) => `<span class="chip ${k === dur ? 'on' : ''}" data-dur="${k}">${t}</span>`).join('')}</div>`;
-        body += this._toggle(E.batCtl, '<b>Riadiť menič</b>', ctl ? 'AI Energy posiela režim do meniča' : 'vypnuté = len odporúča, nič neprepína');
+      // výkon batérie: + nabíja (zelená), − vybíja (červená); stupnica 0 – max_kw
+      let pw = '';
+      const ps = pid && this._s(pid);
+      if (ps && !isNaN(parseFloat(ps.state))) {
+        let w = parseFloat(ps.state) * (ps.attributes.unit_of_measurement === 'kW' ? 1000 : 1);
+        if (this._cfg.invert) w = -w;
+        const maxW = (+this._cfg.max_kw || 10) * 1000, idle = Math.abs(w) < 30;
+        const col = idle ? 'var(--secondary-text-color)' : w > 0 ? '#30d158' : '#ff453a';
+        const txt = Math.abs(w) >= 1000 ? fmt(w / 1000, 2) : fmt(w, 0), unit = Math.abs(w) >= 1000 ? 'kW' : 'W';
+        const pct = Math.min(100, Math.abs(w) / maxW * 100);
+        pw = `<div class="pw"><div class="pv" style="color:${col}">${w > 0 && !idle ? '+' : ''}${txt.replace('-', '−')}<span>${unit}</span></div><div class="small">${idle ? 'stojí' : w > 0 ? 'nabíja' : 'vybíja'}</div></div>`;
+        pw = [pw, `<div class="pbar"><i style="width:${pct}%;background:${col}"></i></div>`];
       }
-      body += `<div class="sub">Nastavenia</div>`
-        + this._slider(E.minSoc, 'Min SOC na konci dňa', '#64d2ff', '%')
-        + `<div class="small" style="margin:-2px 2px 6px">predaj skončí tak, aby po spotrebe domu do ďalšej NT ostala batéria na tejto hodnote</div>`
-        + this._slider(E.maxSoc, 'Max SOC nabíjania zo siete', '#ff453a', '%')
-        + this._stepper(E.prah, 'Min. predajná cena', this._prahHint(pa), 5, kwh)
-        + `<div class="more" data-more>${this._more ? '▾' : '▸'} Pokročilé</div>`;
-      if (this._more) {
-        body += this._stepper(E.chargeKw, 'Nabíjací výkon zo siete', '', 0.5, (v) => fmt(v, 1) + ' kW')
+      const box = `<div class="box" style="flex-wrap:wrap"><div><div class="big">${soc != null ? fmt(soc, 0) + ' %' : '–'}</div><div class="small">batéria${minS != null ? ' · min ' + fmt(minS, 0) + ' %' : ''}</div></div>
+        <div style="flex:1;min-width:0"><div class="why">${esc((this._s(E.why) || {}).state || '')}</div>${next ? `<div class="small">${esc(next)}</div>` : ''}</div>${pw ? pw[0] + pw[1] : ''}</div>`;
+      const kwh = (v) => fmt(v / 1000, 3) + ' €/kWh';
+      let body = box + `<div class="more" data-set style="padding-top:12px">${this._set ? '▾' : '▸'} Nastavenia</div>`;
+      if (this._set) {
+        const bm = this._s(E.batMode);
+        if (bm) {
+          const opts = [['auto', 'Auto (AI)']].concat(Object.keys(MODE).map((k) => [k, MODE[k][0]]));
+          let until = '';
+          if (bm.state !== 'auto') {
+            const u = bm.attributes.rucne_do; const d = u ? new Date(u) : null;
+            until = d ? `do ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : 'natrvalo';
+          }
+          body += `<div class="sub">Menič${bm.state !== 'auto' ? `<span>ručne ${esc(until)}</span>` : ''}</div>`
+            + `<div class="row"><span class="l">Režim</span><select class="md" data-batmode>${opts.map(([k, t]) => `<option value="${k}" ${k === bm.state ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`;
+          const dur = (this._s(E.batDur) || {}).state;
+          body += `<div class="row"><span class="l">Ručný režim na<small>po uplynutí sa vráti na Auto</small></span></div><div class="chips" style="margin-top:-4px">${DUR.map(([k, t]) => `<span class="chip ${k === dur ? 'on' : ''}" data-dur="${k}">${t}</span>`).join('')}</div>`;
+        }
+        body += `<div class="sub">Batéria</div>`
+          + this._slider(E.minSoc, 'Min SOC na konci dňa', '#64d2ff', '%')
+          + `<div class="small" style="margin:-2px 2px 6px">predaj skončí tak, aby po spotrebe domu do ďalšej NT ostala batéria na tejto hodnote</div>`
+          + this._slider(E.maxSoc, 'Max SOC nabíjania zo siete', '#ff453a', '%')
+          + this._stepper(E.prah, 'Min. predajná cena', this._prahHint(pa), 5, kwh)
+          + `<div class="sub">Pokročilé</div>`
+          + this._stepper(E.chargeKw, 'Nabíjací výkon zo siete', '', 0.5, (v) => fmt(v, 1) + ' kW')
           + this._slider(E.pvCorr, 'Korekcia predpovede FVE', '#ffc53d', '%');
       }
-      this._shell('Batéria', 'mdi:home-battery', pill, body);
+      this._shell('AI nastavenia', 'mdi:home-battery', pill, body);
+    }
+  }
+
+  class IgyBatteryActionCardEditor extends HTMLElement {
+    setConfig(c) { this._cfg = Object.assign({}, c); if (this._f) this._f.data = this._cfg; }
+    set hass(h) {
+      if (!this._f) {
+        const f = this._f = document.createElement('ha-form');
+        f.schema = [
+          { name: 'title', selector: { text: {} } },
+          { name: 'power_entity', selector: { entity: { domain: 'sensor', device_class: 'power' } } },
+          { name: 'invert', selector: { boolean: {} } },
+          { name: 'max_kw', selector: { number: { min: 1, max: 50, step: 0.5, mode: 'box', unit_of_measurement: 'kW' } } }
+        ];
+        const L = { title: 'Nadpis', power_entity: 'Výkon batérie', invert: 'Otočiť znamienko', max_kw: 'Stupnica do' };
+        const H = { power_entity: 'Kladný = nabíja, záporný = vybíja. Prázdne = nájde sa sám (napr. SmartShunt).', invert: 'Zapni, ak senzor ukazuje vybíjanie kladne.', max_kw: 'Predvolene 10 kW.' };
+        f.computeLabel = (x) => L[x.name] || x.name; f.computeHelper = (x) => H[x.name];
+        f.addEventListener('value-changed', (e) => {
+          e.stopPropagation();
+          const v = e.detail.value, c = { type: (this._cfg && this._cfg.type) || 'custom:igy-battery-action-card' };
+          Object.keys(v).forEach((k) => { if (k !== 'type' && v[k] !== '' && v[k] != null && v[k] !== false) c[k] = v[k]; });
+          this._cfg = c; f.data = c;
+          this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: c }, bubbles: true, composed: true }));
+        });
+        this.appendChild(f);
+      }
+      this._f.hass = h; this._f.data = this._cfg || {};
     }
   }
 
@@ -252,6 +304,7 @@
   // registrácia až keď je HA frontend pripravený (rovnako ako Igy Price Action Card)
   const register = () => {
     const reg = window.customElements;
+    if (!reg.get('igy-battery-action-card-editor')) reg.define('igy-battery-action-card-editor', IgyBatteryActionCardEditor);
     if (!reg.get('igy-battery-action-card')) reg.define('igy-battery-action-card', IgyBatteryActionCard);
     if (!reg.get('igy-ev-action-card')) reg.define('igy-ev-action-card', IgyEvActionCard);
   };
@@ -264,7 +317,7 @@
     setTimeout(once, 10000);
   }
   window.customCards = window.customCards || [];
-  [['igy-battery-action-card', 'Igy Battery Action Card', 'Batéria: odporúčaný režim, min/max SOC, min. predajná cena (AI Energy).'],
+  [['igy-battery-action-card', 'Igy Battery Action Card', 'AI nastavenia: SOC, výkon batérie, čo sa deje a prečo; nastavenia AI Energy (AI Energy).'],
    ['igy-ev-action-card', 'Igy EV Action Card', 'Nabíjanie auta: režim, čas, prúd, zdroje pre AI a riadenie (AI Energy).']].forEach(([type, name, description]) => {
     if (!window.customCards.some((c) => c.type === type)) window.customCards.push({ type, name, description, preview: true, documentationURL: 'https://github.com/Igypop78/ai-energy' });
   });

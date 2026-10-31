@@ -77,7 +77,8 @@ Karta sa nainštaluje **spolu s integráciou**. Na dashboarde: **Pridať kartu �
 
 Tiež sa inštalujú s integráciou a **netreba ich nastavovať**:
 
-- **Igy Battery Action Card** – čo batéria robí a prečo, min/max SOC, min. predajná cena (v *Pokročilých* nabíjací výkon a korekcia FVE).
+- **Igy Battery Action Card** (*AI nastavenia*) – SOC, výkon batérie (zelená nabíja, červená vybíja), čo sa deje a prečo;
+  pod tlačidlom *Nastavenia* režim meniča (Auto / ručne na čas), min/max SOC, min. predajná cena, nabíjací výkon, korekcia FVE.
 - **Igy EV Action Card** – režim nabíjania auta, čas štartu, prúd, z čoho smie AI nabíjať a prepínač *Riadiť nabíjačku*.
 
 ## Inštalácia cez HACS
