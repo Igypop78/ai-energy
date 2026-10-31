@@ -200,3 +200,16 @@ def test_no_house_charging_when_vt_is_cheap():
     _, p = run(ts(28, 22), 20, price_fn=lambda h: 150, cfg=cfg)
     rano = next(w for w in p.okna if w.nt_od == ts(28, 23, 45))
     assert rano.ciel == pytest.approx(cfg.min_soc, abs=0.5)
+
+
+def test_window_start_aligned_to_slot_high_min_soc():
+    # min SOC 66 % → krátke dobitie, okno by začínalo 14:35; slot 14:30 musí patriť do okna (inak „Bez cien“)
+    cfg = _cfg(min_soc=66, max_soc=100, charge_kw=10, threshold=280)
+    for w in P.make_windows(ts(28, 14, 43), TZ, cfg):
+        assert w.od % 900 == 0
+    now = ts(28, 14, 43)
+    sl, p = run(now, 86, cfg=cfg)
+    rec = P.recommend(p, sl, now, 86, cfg, TZ)
+    assert rec.dovod != "Bez cien – bežná prevádzka"
+    assert p.sloty[0][0] == ts(28, 14, 30)
+    assert rec.rezim == P.MODE_CHARGE  # plán nabíja → odporúčanie tiež

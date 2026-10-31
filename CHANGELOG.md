@@ -2,6 +2,13 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.7.1] – 2026-10-31
+
+### Opravené
+- Pri vysokom min SOC (krátke dobitie) začínalo okno plánu mimo 15-min mriežky (napr. 14:35). Slot pred ním
+  nepatril do žiadneho okna, odporúčanie hlásilo „Bez cien – bežná prevádzka“ a batéria sa nenabíjala,
+  hoci plán ukazoval nabíjanie. Začiatok okna sa teraz zarovná na slot.
+
 ## [0.7.0] – 2026-10-30
 
 ### Zmenené

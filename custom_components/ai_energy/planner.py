@@ -179,7 +179,8 @@ def make_windows(now_ts: int, tz: tzinfo, cfg: PlanConfig) -> list[Window]:
         day0 = datetime.fromtimestamp(now_ts, tz).date()
         mid = [int(datetime.combine(day0 + timedelta(days=d), time(0), tz).timestamp()) for d in range(-1, 4)]
         nts = [(m, m) for m in mid]
-    starts = [max(s, e - t_full) for s, e in nts]
+    # začiatok okna zarovnaný na 15-min slot (inak by slot pred začiatkom nepatril do žiadneho okna)
+    starts = [max(s, int((e - t_full) // SLOT * SLOT)) for s, e in nts]
     wins = []
     for i in range(len(nts) - 1):
         s, e = nts[i]
