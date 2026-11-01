@@ -15,7 +15,7 @@
  */
 (function () {
   'use strict';
-  const VERSION = '3.0.1';
+  const VERSION = '3.1.0';
   // cena: neutrálna škála (nekoliduje s farbami akcií) – lacné svetlé, bežné sivé, nad prahom predaja zelená (ako predaj)
 const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' };
   const ACT = {
@@ -84,6 +84,7 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
     .bat i { position: absolute; top: 0; bottom: 0; }
     .done { font-size: 12px; color: var(--secondary-text-color); padding: 2px 0 10px 72px; cursor: pointer; }
     .msg { font-size: 13px; color: var(--secondary-text-color); padding: 8px 0; }
+    [data-more] { cursor: pointer; }
   `;
 
   class IgyPriceActionCard extends HTMLElement {
@@ -207,7 +208,8 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
       const cp = isToday ? day.find((x) => x[0] <= now && now < x[0] + 900000) : null;
       const lo = day.reduce((a, x) => x[1] < a[1] ? x : a), hi = day.reduce((a, x) => x[1] > a[1] ? x : a);
       const info = cp ? `teraz <b style="color:${this._col(cp[1], prah) === C.high ? C.high : 'var(--primary-text-color)'}">${Math.round(cp[1])}</b>` : `Ø <b>${Math.round(avg(T0, T1))}</b>`;
-      h += `<div class="box pr"><div class="pt num"><span>${info} <small>${esc(unit)}</small></span><span>min ${Math.round(lo[1])} · max ${Math.round(hi[1])}${prah != null ? ` · <i style="color:${C.high}">prah ${Math.round(prah)}</i>` : ''}</span></div><div class="ch">${svg}${yl}<div class="hov"></div><div class="tip"></div></div>${xa}</div>`;
+      const curId = this._hass.states['sensor.ai_energy_aktualna_cena'] ? 'sensor.ai_energy_aktualna_cena' : c.price_entity;
+      h += `<div class="box pr"><div class="pt num"><span data-more="${esc(curId)}">${info} <small>${esc(unit)}</small></span><span><span data-more="${esc(c.price_entity)}">min ${Math.round(lo[1])} · max ${Math.round(hi[1])}</span>${prah != null ? ` · <i data-more="${esc(c.threshold_entity || '')}" style="color:${C.high}">prah ${Math.round(prah)}</i>` : ''}</span></div><div class="ch">${svg}${yl}<div class="hov"></div><div class="tip"></div></div>${xa}</div>`;
       this._tipD = { day, T0, H, prah, unit, sl };
       // časová os (rozbaľovacia)
       if (blocks.length) {

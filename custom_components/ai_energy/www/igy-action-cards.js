@@ -7,7 +7,7 @@
  */
 (function () {
   'use strict';
-  const VERSION = '1.2.0';
+  const VERSION = '1.3.0';
   const E = {
     mode: 'sensor.ai_energy_odporucany_rezim', why: 'sensor.ai_energy_dovod', plan: 'sensor.ai_energy_plan',
     minSoc: 'number.ai_energy_min_soc', maxSoc: 'number.ai_energy_max_soc', prah: 'number.ai_energy_prah_predaja',
@@ -44,11 +44,14 @@
     .row b { font-variant-numeric: tabular-nums; font-weight: 600; }
     .sl { padding: 4px 2px 2px; }
     .sl .row { padding: 0 0 2px; min-height: 0; }
-    input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; margin: 0; cursor: pointer; }
+    input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; margin: 0; pointer-events: none; touch-action: pan-y; }
     input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, var(--c) var(--p), rgba(127,127,127,.25) var(--p)); }
     input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, var(--c) var(--p), rgba(127,127,127,.25) var(--p)); }
-    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -7px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
-    input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -9px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); pointer-events: auto; cursor: grab; touch-action: none; }
+    input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); pointer-events: auto; cursor: grab; }
+    [data-mi] { cursor: pointer; }
+    [data-mi]:hover { text-decoration: underline dotted; text-underline-offset: 3px; }
+    .box [data-mi]:hover, .pill[data-mi]:hover { text-decoration: none; opacity: .85; }
     .st { display: inline-flex; align-items: center; gap: 6px; }
     .st button { width: 30px; height: 30px; border-radius: 9px; border: 0; background: var(--hc-surface, rgba(127,127,127,.15)); color: var(--primary-text-color); font-size: 17px; cursor: pointer; }
     .st b { min-width: 92px; text-align: center; }
@@ -101,16 +104,16 @@
       const s = this._s(id); if (!s) return '';
       const a = s.attributes, v = parseFloat(s.state), mn = a.min ?? 0, mx = a.max ?? 100, st = a.step ?? 1;
       const p = ((v - mn) / (mx - mn)) * 100;
-      return `<div class="sl"><div class="row"><span class="l">${label}</span><b data-out="${id}">${fmtv ? fmtv(v) : fmt(v, 0) + ' ' + unit}</b></div>
+      return `<div class="sl"><div class="row"><span class="l" data-mi="${id}">${label}</span><b data-out="${id}">${fmtv ? fmtv(v) : fmt(v, 0) + ' ' + unit}</b></div>
         <input type="range" data-num="${id}" min="${mn}" max="${mx}" step="${st}" value="${v}" style="--c:${color};--p:${p}%"></div>`;
     }
     _stepper(id, label, hint, step, show) {
       const v = this._v(id); if (v == null) return '';
-      return `<div class="row"><span class="l">${label}${hint ? `<small>${hint}</small>` : ''}</span><span class="st"><button data-step="${id}" data-d="${-step}">−</button><b>${show(v)}</b><button data-step="${id}" data-d="${step}">+</button></span></div>`;
+      return `<div class="row"><span class="l" data-mi="${id}">${label}${hint ? `<small>${hint}</small>` : ''}</span><span class="st"><button data-step="${id}" data-d="${-step}">−</button><b>${show(v)}</b><button data-step="${id}" data-d="${step}">+</button></span></div>`;
     }
     _toggle(id, label, hint) {
       const s = this._s(id); if (!s) return '';
-      return `<div class="row"><span class="l">${label}${hint ? `<small>${hint}</small>` : ''}</span><span class="tgl ${s.state === 'on' ? 'on' : ''}" data-sw="${id}"></span></div>`;
+      return `<div class="row"><span class="l" data-mi="${id}">${label}${hint ? `<small>${hint}</small>` : ''}</span><span class="tgl ${s.state === 'on' ? 'on' : ''}" data-sw="${id}"></span></div>`;
     }
     _wire() {
       const r = this.shadowRoot;
@@ -129,6 +132,11 @@
         this._num(id, Math.min(s.attributes.max ?? 1e9, Math.max(s.attributes.min ?? -1e9, Math.round(v * 1000) / 1000)));
       }));
       r.querySelectorAll('[data-sw]').forEach((el) => el.addEventListener('click', () => this._sw(el.dataset.sw, !el.classList.contains('on'))));
+      r.querySelectorAll('[data-mi]').forEach((el) => el.addEventListener('click', (e) => {
+        if (!el.dataset.mi) return;
+        e.stopPropagation();
+        this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId: el.dataset.mi }, bubbles: true, composed: true }));
+      }));
       r.querySelectorAll('[data-set]').forEach((el) => el.addEventListener('click', () => { this._set = !this._set; this._sig = ''; this._render(); }));
       r.querySelectorAll('[data-more]').forEach((el) => el.addEventListener('click', () => { this._more = !this._more; this._sig = ''; this._render(); }));
       if (this._wireExtra) this._wireExtra(r);
@@ -156,7 +164,7 @@
       if (!m) { this._shell('AI nastavenia', 'mdi:home-battery', '', '<div class="msg">Nenašiel som AI Energy. Nainštaluj a nastav integráciu AI Energy.</div>'); return; }
       const ap = m.attributes.aplikovany_rezim || m.state, man = !!m.attributes.rucne;
       const [mt, mc, me] = MODE[ap] || [ap, '#8e8e93', ''];
-      const pill = `<span class="pill" style="background:${mc}26;color:${mc}">${me} ${esc(mt)}${man ? ' · ručne' : ''}</span>`;
+      const pill = `<span class="pill" data-mi="${E.mode}" style="background:${mc}26;color:${mc}">${me} ${esc(mt)}${man ? ' · ručne' : ''}</span>`;
       const pl = this._s(E.plan), pa = pl ? pl.attributes : {}, soc = pa.soc, sl = pa.sloty || [];
       let next = '';
       if (sl.length) {
@@ -174,11 +182,11 @@
         const col = idle ? 'var(--secondary-text-color)' : w > 0 ? '#30d158' : '#ff453a';
         const txt = Math.abs(w) >= 1000 ? fmt(w / 1000, 2) : fmt(w, 0), unit = Math.abs(w) >= 1000 ? 'kW' : 'W';
         const pct = Math.min(100, Math.abs(w) / maxW * 100);
-        pw = `<div class="pw"><div class="pv" style="color:${col}">${w > 0 && !idle ? '+' : ''}${txt.replace('-', '−')}<span>${unit}</span></div><div class="small">${idle ? 'stojí' : w > 0 ? 'nabíja' : 'vybíja'}</div></div>`;
+ pw = `<div class="pw" data-mi="${pid}"><div class="pv" style="color:${col}">${w > 0 && !idle ? '+' : ''}${txt.replace('-', '−')}<span>${unit}</span></div><div class="small">${idle ? 'stojí' : w > 0 ? 'nabíja' : 'vybíja'}</div></div>`;
         pw = [pw, `<div class="pbar"><i style="width:${pct}%;background:${col}"></i></div>`];
       }
-      const box = `<div class="box" style="flex-wrap:wrap"><div><div class="big">${soc != null ? fmt(soc, 0) + ' %' : '–'}</div><div class="small">batéria${minS != null ? ' · min ' + fmt(minS, 0) + ' %' : ''}</div></div>
-        <div style="flex:1;min-width:0"><div class="why">${esc((this._s(E.why) || {}).state || '')}</div>${next ? `<div class="small">${esc(next)}</div>` : ''}</div>${pw ? pw[0] + pw[1] : ''}</div>`;
+      const box = `<div class="box" style="flex-wrap:wrap"><div data-mi="${pa.soc_entity || ''}"><div class="big">${soc != null ? fmt(soc, 0) + ' %' : '–'}</div><div class="small">batéria${minS != null ? ' · min ' + fmt(minS, 0) + ' %' : ''}</div></div>
+        <div style="flex:1;min-width:0" data-mi="${E.why}"><div class="why">${esc((this._s(E.why) || {}).state || '')}</div>${next ? `<div class="small">${esc(next)}</div>` : ''}</div>${pw ? pw[0] + pw[1] : ''}</div>`;
       const kwh = (v) => fmt(v / 1000, 3) + ' €/kWh';
       let body = box + `<div class="more" data-set style="padding-top:12px">${this._set ? '▾' : '▸'} Nastavenia</div>`;
       if (this._set) {
@@ -191,9 +199,9 @@
             until = d ? `do ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : 'natrvalo';
           }
           body += `<div class="sub">Menič${bm.state !== 'auto' ? `<span>ručne ${esc(until)}</span>` : ''}</div>`
-            + `<div class="row"><span class="l">Režim</span><select class="md" data-batmode>${opts.map(([k, t]) => `<option value="${k}" ${k === bm.state ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`;
+            + `<div class="row"><span class="l" data-mi="${E.batMode}">Režim</span><select class="md" data-batmode>${opts.map(([k, t]) => `<option value="${k}" ${k === bm.state ? 'selected' : ''}>${t}</option>`).join('')}</select></div>`;
           const dur = (this._s(E.batDur) || {}).state;
-          body += `<div class="row"><span class="l">Ručný režim na<small>po uplynutí sa vráti na Auto</small></span></div><div class="chips" style="margin-top:-4px">${DUR.map(([k, t]) => `<span class="chip ${k === dur ? 'on' : ''}" data-dur="${k}">${t}</span>`).join('')}</div>`;
+          body += `<div class="row"><span class="l" data-mi="${E.batDur}">Ručný režim na<small>po uplynutí sa vráti na Auto</small></span></div><div class="chips" style="margin-top:-4px">${DUR.map(([k, t]) => `<span class="chip ${k === dur ? 'on' : ''}" data-dur="${k}">${t}</span>`).join('')}</div>`;
         }
         body += `<div class="sub">Batéria</div>`
           + this._slider(E.minSoc, 'Min SOC na konci dňa', '#64d2ff', '%')
@@ -269,14 +277,14 @@
       if (!sel || !why) { this._shell('Auto', 'mdi:car-electric', '', '<div class="msg">Nabíjanie auta nie je nastavené. V AI Energy → Konfigurovať zapni „Mám nabíjačku auta“.</div>'); return; }
       const a = why.attributes, mode = sel.state, ctl = (this._s(E.evCtl) || {}).state === 'on';
       const ph = a.fazy || 3, kw = (amp) => fmt(amp * 230 * ph / 1000, 1);
-      const pill = a.nabija ? '<span class="pill" style="background:#30d15826;color:#30d158">⚡ nabíja</span>'
-        : a.pripojene === false ? '<span class="pill" style="background:rgba(127,127,127,.18);color:var(--secondary-text-color)">odpojené</span>'
-        : '<span class="pill" style="background:#0a84ff26;color:#4da3ff">🔌 pripojené</span>';
+      const pill = a.nabija ? '<span class="pill" data-mi="sensor.ai_energy_auto_dovod" style="background:#30d15826;color:#30d158">⚡ nabíja</span>'
+        : a.pripojene === false ? '<span class="pill" data-mi="sensor.ai_energy_auto_dovod" style="background:rgba(127,127,127,.18);color:var(--secondary-text-color)">odpojené</span>'
+        : '<span class="pill" data-mi="sensor.ai_energy_auto_dovod" style="background:#0a84ff26;color:#4da3ff">🔌 pripojené</span>';
       this._fmtOut = { [E.evA]: (v) => `${fmt(v, 0)} A · ${kw(v)} kW` };
       let body = `<div class="seg">${EVM.map(([k, t]) => `<b data-mode="${k}" class="${k === mode ? 'on' : ''}">${t}</b>`).join('')}</div>`;
       if (mode === 'time') {
         const t = (this._s(E.evTime) || {}).state || '';
-        body += `<div class="row"><span class="l">Začať o</span><input type="time" data-time value="${esc(t.slice(0, 5))}"></div>`;
+        body += `<div class="row"><span class="l" data-mi="${E.evTime}">Začať o</span><input type="time" data-time value="${esc(t.slice(0, 5))}"></div>`;
       }
       if (mode === 'now' || mode === 'time') body += this._slider(E.evA, 'Prúd', '#0a84ff', 'A', this._fmtOut[E.evA]);
       if (mode === 'ai') {
@@ -285,7 +293,7 @@
         if (on(E.evSpot)) body += this._stepper(E.evSpotP, 'Lacný spot do', 'nabíja, keď je spot pod touto cenou', 5, (v) => fmt(v / 1000, 3) + ' €/kWh');
       }
       const txt = (why.state || '').replace(/^Len odporúčanie \(Riadenie vypnuté\) – /, '');
-      body += `<div class="why ${ctl ? '' : 'warn'}" style="padding:8px 2px 2px">${ctl ? '' : '⚠️ Len odporúčanie – '}${esc(txt)}</div>`;
+      body += `<div class="why ${ctl ? '' : 'warn'}" data-mi="${E.evWhy}" style="padding:8px 2px 2px">${ctl ? '' : '⚠️ Len odporúčanie – '}${esc(txt)}</div>`;
       body += this._toggle(E.evCtl, '<b>Riadiť nabíjačku</b>', 'vypnuté = len odporúča, nič neprepína');
       this._shell('Auto', 'mdi:car-electric', pill, body);
     }

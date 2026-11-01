@@ -2,6 +2,14 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.9.2] – 2026-11-01
+
+### Zmenené
+- Posuvníky na kartách sa dajú meniť **len ťahaním guličky** – ťuknutie na dráhu (napr. pri scrollovaní na mobile)
+  hodnotu nezmení; gulička je o trochu väčšia.
+- Údaje na kartách sú **klikateľné** a otvoria detail entity v HA: režim, SOC, dôvod, výkon batérie, názvy nastavení,
+  dôvod nabíjania auta, aktuálna cena, min/max, prah.
+
 ## [0.9.1] – 2026-11-01
 
 ### Opravené
