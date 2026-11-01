@@ -2,6 +2,13 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.9.1] – 2026-11-01
+
+### Opravené
+- Keď boli ceny počas poobednej NT vyššie ako večer, plán vybral na predaj práve úseky v NT – lenže vtedy sa
+  batéria nabíja, takže sa takmer nič nepredalo a večer išiel len dom z batérie. Úseky počas vlastnej NT sa už
+  do predaja nerátajú; večer sa predá, čo sa v NT nabije (po min SOC s rezervou pre dom).
+
 ## [0.9.0] – 2026-10-31
 
 ### Zmenené

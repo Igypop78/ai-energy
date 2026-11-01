@@ -214,14 +214,15 @@ def plan(
     for w in windows:
         start = max(w.od, slot0)
         psl = [x for x in slots if start <= x["t"] < w.do]
-        nad = [x for x in psl if _cmp(x, cfg) >= cfg.threshold]
+        # počas vlastnej NT sa batéria nabíja – tieto úseky sa do predaja nerátajú (inak by „zjedli“ predaje večer)
+        nad = [x for x in psl if x["t"] >= w.nt_do and _cmp(x, cfg) >= cfg.threshold]
         pb_spolu = sum(x["pb"] for x in psl)
         kum = maxk = 0.0
         vt_end = w.nt2 if w.nt2 else w.do
         for y in psl:
             # spotreba domu vo VT časti okna (čo nepokryje slnko) – ak je lacnejšie nabiť ju v NT
             dom = max(0.0, cfg.house_slot - y["pv"]) if cfg.house_shift and w.nt_do <= y["t"] < vt_end else 0.0
-            kum = max(kum - y["pb"] + dom + (kwh_slot if _cmp(y, cfg) >= cfg.threshold else 0.0), -(100 - cfg.min_soc) / 100 * kap)
+            kum = max(kum - y["pb"] + dom + (kwh_slot if y["t"] >= w.nt_do and _cmp(y, cfg) >= cfg.threshold else 0.0), -(100 - cfg.min_soc) / 100 * kap)
             maxk = max(maxk, kum)
         w.ciel = min(cfg.max_soc, cfg.min_soc + maxk / kap * 100) if psl else cfg.max_soc
         e_ciel = (w.ciel - cfg.min_soc) / 100 * kap

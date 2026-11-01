@@ -241,3 +241,18 @@ def test_plan_and_recommendation_agree_near_nt_target():
     rec = P.recommend(p, sl, now, soc, cfg, TZ)
     assert rec.rezim == P.MODE_GRID
     assert p.sloty[0][2] == "G"
+
+
+def test_expensive_own_nt_does_not_block_evening_sales():
+    # poobedná NT je drahšia ako večer – úseky počas vlastného nabíjania nesmú zabrať „rozpočet“ predaja
+    def price(h):
+        if 13.75 <= h < 15.75:
+            return 455
+        if 6 <= h < 23.75:
+            return 350
+        return 225
+    cfg = _cfg(min_soc=20, max_soc=100, charge_kw=10, threshold=280, house_kw=0.8, export_kw=10)
+    _, p = run(ts(28, 17), 30, price_fn=price, cfg=cfg)
+    vecer = [a for t, _, a in p.sloty if ts(29, 15, 45) <= t < ts(29, 23, 45)]
+    assert vecer.count("P") >= 4
+    assert not any(a == "P" for t, _, a in p.sloty if ts(29, 13, 45) <= t < ts(29, 15, 45))
