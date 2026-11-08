@@ -276,4 +276,8 @@ def test_pv_before_nt_energy_is_sold_in_evening():
     cfg = _cfg(min_soc=10, max_soc=100, charge_kw=10, threshold=300, house_kw=0.8, export_kw=10, pv_correction=1.0)
     _, p = run(ts(28, 19), 17, price_fn=price, pv=pv, cfg=cfg)
     pred_nt = [x for x in p.sloty if x[0] < ts(29, 23, 45)][-1]
-    assert pred_nt[1] == pytest.approx(cfg.min_soc, abs=3)  # bez dopĺňania predajov tu ostávalo ~23 %
+    assert pred_nt[1] < cfg.min_soc + cfg.kwh_slot / cfg.capacity_kwh * 100  # bez dopĺňania tu ostávalo ~23 %
+    # ráno sa nepredá tak veľa, aby ju NT nestihla nabiť na drahý večer (600 vs. 330–400 ráno)
+    koniec_nt = next(x for x in p.sloty if x[0] == ts(29, 15, 30))
+    assert koniec_nt[1] >= 97
+    assert any(a == "P" for t, _, a in p.sloty if ts(29, 6) <= t < ts(29, 9))  # ráno sa predáva

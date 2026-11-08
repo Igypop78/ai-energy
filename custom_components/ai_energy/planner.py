@@ -87,6 +87,8 @@ class Window:
     predaj: set[int] = field(default_factory=set)
     fve_kwh: float = 0.0
     kandidati: list = field(default_factory=list, repr=False)  # úseky nad prahom zoradené od najdrahšieho
+    rezerva_dalej: float = 0.0  # kWh nad min SOC, ktoré treba nechať pre ďalšie okno (jeho NT ho nestihne nabiť)
+    cena_dalej: float = 0.0  # čistá predajná cena, za ktorú by sa táto energia predala v ďalšom okne
 
 
 @dataclass
@@ -210,6 +212,22 @@ def plan(
     kap = cfg.capacity_kwh
     windows = [w for w in make_windows(int(now_ts), tz, cfg) if w.do > now_ts]
 
+    # 0) cieľ NT a kandidáti na predaj pre všetky okná – kvôli rezerve pre ďalšie okno
+    for w in windows:
+        start = max(w.od, slot0)
+        psl = [x for x in slots if start <= x["t"] < w.do]
+        nad = [x for x in psl if x["t"] >= w.nt_do and _cmp(x, cfg) >= cfg.threshold]
+        w.kandidati = sorted(nad, key=lambda x: -_sell(x, cfg))
+    for i, w in enumerate(windows[:-1]):
+        nx = windows[i + 1]
+        _ciel(nx, slots, max(nx.od, slot0), cfg)
+        e_ciel_nx = (nx.ciel - cfg.min_soc) / 100 * kap
+        nt_nx = max(0.0, (nx.nt_do - max(nx.nt_od, now_ts)) / 3600) * cfg.charge_kw
+        # čo NT ďalšieho okna nestihne nabiť, musí zostať v batérii z tohto okna
+        w.rezerva_dalej = max(0.0, e_ciel_nx - nt_nx)
+        m = math.ceil(e_ciel_nx / kwh_slot - 1e-9)
+        w.cena_dalej = _sell(nx.kandidati[m - 1], cfg) if 0 < m <= len(nx.kandidati) else (_sell(nx.kandidati[-1], cfg) if nx.kandidati else 0.0)
+
     # 1) okná: cieľ NT, koľko energie bude na predaj, ktoré sloty predať
     carry = -1.0
     for w in windows:
@@ -218,14 +236,7 @@ def plan(
         # počas vlastnej NT sa batéria nabíja – tieto úseky sa do predaja nerátajú (inak by „zjedli“ predaje večer)
         nad = [x for x in psl if x["t"] >= w.nt_do and _cmp(x, cfg) >= cfg.threshold]
         pb_spolu = sum(x["pb"] for x in psl)
-        kum = maxk = 0.0
-        vt_end = w.nt2 if w.nt2 else w.do
-        for y in psl:
-            # spotreba domu vo VT časti okna (čo nepokryje slnko) – ak je lacnejšie nabiť ju v NT
-            dom = max(0.0, cfg.house_slot - y["pv"]) if cfg.house_shift and w.nt_do <= y["t"] < vt_end else 0.0
-            kum = max(kum - y["pb"] + dom + (kwh_slot if y["t"] >= w.nt_do and _cmp(y, cfg) >= cfg.threshold else 0.0), -(100 - cfg.min_soc) / 100 * kap)
-            maxk = max(maxk, kum)
-        w.ciel = min(cfg.max_soc, cfg.min_soc + maxk / kap * 100) if psl else cfg.max_soc
+        _ciel(w, slots, start, cfg)
         e_ciel = (w.ciel - cfg.min_soc) / 100 * kap
         nt_h = max(0.0, (w.nt_do - max(w.nt_od, now_ts)) / 3600)
         if w.od <= now_ts:
@@ -237,9 +248,12 @@ def plan(
             e0 = max(0.0, carry)
             e = max(e0, min(e_ciel, e0 + nt_h * cfg.charge_kw)) + pb_spolu
         e_sell = e - house_reserve(slots, w, max(start, w.nt_do), cfg)
-        n = math.ceil(e_sell / kwh_slot - 1e-9) if e_sell > 0 else 0
-        w.kandidati = sorted(nad, key=lambda x: -_sell(x, cfg))
-        top = w.kandidati[:n]
+        # drahšie úseky ako v ďalšom okne smú použiť celú energiu, lacnejšie nechajú rezervu pre ďalšie okno
+        top = []
+        for x in w.kandidati:
+            limit = e_sell if _sell(x, cfg) >= w.cena_dalej else e_sell - w.rezerva_dalej
+            if len(top) * kwh_slot < limit - 1e-9:
+                top.append(x)
         top_t = {int(x["t"]) for x in top}
         extra = {int(x["t"]) for x in nad if w.nt2 and x["t"] >= w.nt2} - top_t
         w.predaj = top_t | extra
@@ -249,6 +263,7 @@ def plan(
         vt_do = w.nt2 if w.nt2 else w.do
         vt_h = max(0.0, (vt_do - vt_od) / 3600)
         predane = min(max(0.0, e_sell), len(top) * kwh_slot)
+        n = len(top)  # noqa: F841
         carry = max(0.0, e - predane - cfg.house_kw * vt_h)
 
     # 2) simulácia; odhad energie v kroku 1 je hrubý (napr. nezahŕňa, koľko batériu nabije slnko pred NT),
@@ -268,10 +283,12 @@ def plan(
                 hotove.add(w.od)  # posledné pridanie nepomohlo (napr. rezerva pre dom) – ďalej nepridávať
                 continue
             konce[w.od] = koniec
-            k = int((koniec - cfg.min_soc) / 100 * kap // kwh_slot)
-            if k < 1:
-                continue
-            nove = [x for x in w.kandidati if int(x["t"]) not in w.predaj and slot0 <= x["t"] < vt_end][:k]
+            navyse = (koniec - cfg.min_soc) / 100 * kap
+            nove = []
+            for x in (y for y in w.kandidati if int(y["t"]) not in w.predaj and slot0 <= y["t"] < vt_end):
+                limit = navyse if _sell(x, cfg) >= w.cena_dalej else navyse - w.rezerva_dalej
+                if (len(nove) + 1) * kwh_slot <= limit + 1e-9:
+                    nove.append(x)
             if nove:
                 w.predaj |= {int(x["t"]) for x in nove}
                 w.hranica = min([w.hranica or 1e9] + [_cmp(x, cfg) for x in nove])
@@ -297,7 +314,12 @@ def _simulate(slots: list[dict[str, float]], windows: list[Window], soc: float, 
         ntw = next((w for w in windows if w.nt_od <= t < w.nt_do), None)
         je_nt = ntw is not None
         ciel = ntw.ciel if ntw else 0.0
-        avail = (s - cfg.min_soc) / 100 * kap - (house_reserve(slots, pool, t + SLOT, cfg) if t in pool.predaj else 0.0)
+        drz = 0.0
+        if pool.rezerva_dalej and _sell(x, cfg) < pool.cena_dalej:
+            # nechaj na drahší predaj v ďalšom okne – mínus to, čo do konca okna ešte dobije slnko
+            slnko = sum(y["pb"] for y in slots if t < y["t"] < pool.do)
+            drz = max(0.0, pool.rezerva_dalej - slnko)
+        avail = (s - cfg.min_soc) / 100 * kap - (house_reserve(slots, pool, t + SLOT, cfg) + drz if t in pool.predaj else 0.0)
         out.fve_kwh += x["pv"]
         noc_ok = _night_ok(t, s, avail, pool, ntw, cfg)
         energia_ok = avail >= 0.3 if posledna == "predaj" else (avail >= 0.3 and avail + x["pb"] >= kwh_slot)
@@ -309,7 +331,7 @@ def _simulate(slots: list[dict[str, float]], windows: list[Window], soc: float, 
             s -= z_bat / kap * 100
             out.predaj_kwh += export
             out.trzba += _sell(x, cfg) * export / 1000
-        elif t in pool.predaj and not je_nt and x["pb"] >= 0.25:
+        elif t in pool.predaj and not je_nt and x["pb"] >= 0.25 and (s - cfg.min_soc) / 100 * kap >= drz - 0.05:
             akcia = "E"
             out.predaj_kwh += x["pb"]
             out.trzba += _sell(x, cfg) * x["pb"] / 1000
@@ -342,6 +364,20 @@ def _simulate(slots: list[dict[str, float]], windows: list[Window], soc: float, 
     out.nakup_kwh = out.nakup_kwh / 0.9
     out.nakup_eur = out.nakup_kwh * cfg.price_nt / 1000
     return out
+
+
+def _ciel(w: Window, slots: Sequence[Mapping[str, float]], start: int, cfg: PlanConfig) -> None:
+    """Cieľ nabitia v NT: na predaje nad prahom + (ak sa oplatí) spotrebu domu, mínus slnko – chronologicky."""
+    kap, kwh_slot = cfg.capacity_kwh, cfg.kwh_slot
+    psl = [x for x in slots if start <= x["t"] < w.do]
+    kum = maxk = 0.0
+    vt_end = w.nt2 if w.nt2 else w.do
+    for y in psl:
+        # spotreba domu vo VT časti okna (čo nepokryje slnko) – ak je lacnejšie nabiť ju v NT
+        dom = max(0.0, cfg.house_slot - y["pv"]) if cfg.house_shift and w.nt_do <= y["t"] < vt_end else 0.0
+        kum = max(kum - y["pb"] + dom + (kwh_slot if y["t"] >= w.nt_do and _cmp(y, cfg) >= cfg.threshold else 0.0), -(100 - cfg.min_soc) / 100 * kap)
+        maxk = max(maxk, kum)
+    w.ciel = min(cfg.max_soc, cfg.min_soc + maxk / kap * 100) if psl else cfg.max_soc
 
 
 def house_reserve(slots: Sequence[Mapping[str, float]], w: Window, t_from: int, cfg: PlanConfig) -> float:
@@ -398,6 +434,9 @@ def recommend(
         return Recommendation(MODE_NORMAL, "Bez cien – bežná prevádzka", None)
 
     rezerva = house_reserve(slots, pool, slot0 + SLOT, cfg)
+    if pool.rezerva_dalej and cur is not None and _sell(cur, cfg) < pool.cena_dalej:
+        # energia pre drahší predaj v ďalšom okne (jeho NT ju nestihne nabiť), mínus slnko do konca okna
+        rezerva += max(0.0, pool.rezerva_dalej - sum(y["pb"] for y in slots if slot0 < y["t"] < pool.do))
     avail = (soc - cfg.min_soc) / 100 * cfg.capacity_kwh - rezerva
     pb_teraz = cur["pb"] if cur else 0.0
     v_plane = slot0 in pool.predaj
@@ -435,6 +474,8 @@ def recommend(
         return Recommendation(MODE_GRID, f"NT: SOC {s_txt} ≥ cieľ {ciel:.0f} % – dom zo siete, batéria sa šetrí", pool)
     if v_plane and not predaj and rezerva >= 0.3 and avail < cfg.kwh_slot:
         do = datetime.fromtimestamp(pool.nt2 or pool.do, tz).strftime("%H:%M")
+        if pool.rezerva_dalej and cur is not None and _sell(cur, cfg) < pool.cena_dalej:
+            return Recommendation(MODE_NORMAL, f"Nepredávam – {rezerva:.1f} kWh šetrím na drahší predaj po NT ({pool.cena_dalej + cfg.sell_fee:.0f} €; NT ju celú nestihne nabiť) a dom do {do}", pool)
         return Recommendation(MODE_NORMAL, f"Nepredávam – {rezerva:.1f} kWh nechávam pre dom do {do} (aby SOC skončil na min {cfg.min_soc:.0f} %)", pool)
     if v_plane and not noc_ok:
         return Recommendation(MODE_NORMAL, "Nočný predaj vynechaný – nestihlo by sa dobiť na ranný cieľ", pool)

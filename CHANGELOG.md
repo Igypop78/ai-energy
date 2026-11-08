@@ -2,6 +2,14 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.9.4] – 2026-11-08
+
+### Opravené
+- Plán predával cez deň (lacnejšie) toľko, že poobedná NT už nestihla nabiť batériu na drahší večer.
+  Teraz okno vie, koľko energie musí nechať pre ďalšie okno – to, čo jeho NT za svoj čas nenabije
+  (mínus slnko, ktoré ešte príde). Túto rezervu smú minúť len predaje drahšie ako v ďalšom okne;
+  lacnejšie úseky ju nechajú na večer. Odporúčanie píše „šetrím na drahší predaj po NT“.
+
 ## [0.9.3] – 2026-11-08
 
 ### Opravené
