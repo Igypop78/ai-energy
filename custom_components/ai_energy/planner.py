@@ -254,18 +254,24 @@ def plan(
     # 2) simulácia; odhad energie v kroku 1 je hrubý (napr. nezahŕňa, koľko batériu nabije slnko pred NT),
     #    preto: ak okno skončí s energiou navyše, pridaj ďalšie najdrahšie úseky a simuluj znova
     out = _simulate(slots, windows, soc, cfg, current_mode)
-    for _ in range(8):
+    hotove: set[int] = set()  # okná, kde pridanie úsekov už nič nezmenilo
+    konce: dict[int, float] = {}
+    for _ in range(20):
         pridane = False
         for w in windows:
             vt_end = w.nt2 if w.nt2 else w.do
             pred = [r for r in out.sloty if w.od <= r[0] < vt_end]
-            if not pred:
+            if not pred or w.od in hotove:
                 continue
-            navyse = (pred[-1][1] - cfg.min_soc) / 100 * kap
-            k = int(navyse // kwh_slot)
+            koniec = pred[-1][1]
+            if w.od in konce and koniec >= konce[w.od] - 0.05:
+                hotove.add(w.od)  # posledné pridanie nepomohlo (napr. rezerva pre dom) – ďalej nepridávať
+                continue
+            konce[w.od] = koniec
+            k = int((koniec - cfg.min_soc) / 100 * kap // kwh_slot)
             if k < 1:
                 continue
-            nove = [x for x in w.kandidati if int(x["t"]) not in w.predaj and x["t"] < vt_end][:k]
+            nove = [x for x in w.kandidati if int(x["t"]) not in w.predaj and slot0 <= x["t"] < vt_end][:k]
             if nove:
                 w.predaj |= {int(x["t"]) for x in nove}
                 w.hranica = min([w.hranica or 1e9] + [_cmp(x, cfg) for x in nove])
