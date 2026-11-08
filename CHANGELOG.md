@@ -2,6 +2,14 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.9.3] – 2026-11-08
+
+### Opravené
+- Plán nevyužil celú batériu, keď ju pred NT dobilo slnko (napr. večer skončil na 30 % pri min SOC 10 %
+  a vysokých cenách). Odhad energie na predaj nezahŕňal, koľko FVE nabije batériu pred NT. Plán teraz po simulácii
+  skontroluje každé okno: ak by skončilo nad min SOC aspoň o jeden úsek predaja, pridá ďalšie najdrahšie úseky
+  a prepočíta sa znova.
+
 ## [0.9.2] – 2026-11-01
 
 ### Zmenené

@@ -256,3 +256,24 @@ def test_expensive_own_nt_does_not_block_evening_sales():
     vecer = [a for t, _, a in p.sloty if ts(29, 15, 45) <= t < ts(29, 23, 45)]
     assert vecer.count("P") >= 4
     assert not any(a == "P" for t, _, a in p.sloty if ts(29, 13, 45) <= t < ts(29, 15, 45))
+
+
+def test_pv_before_nt_energy_is_sold_in_evening():
+    # ráno predaj na min, slnko pred NT dobije batériu, v NT do 100 %, večer drahé – večer sa má predať po min SOC
+    def price(h):
+        if 6 <= h < 9:
+            return 400
+        if 9 <= h < 13.75:
+            return 330
+        if 13.75 <= h < 15.75:
+            return 480
+        if 15.75 <= h < 22:
+            return 600
+        if 22 <= h < 23.75:
+            return 320
+        return 225
+    pv = [(ts(29, h, m), 2.0) for h in range(9, 14) for m in (0, 15, 30, 45)]  # ~8 kW z FVE 9–14 h
+    cfg = _cfg(min_soc=10, max_soc=100, charge_kw=10, threshold=300, house_kw=0.8, export_kw=10, pv_correction=1.0)
+    _, p = run(ts(28, 19), 17, price_fn=price, pv=pv, cfg=cfg)
+    pred_nt = [x for x in p.sloty if x[0] < ts(29, 23, 45)][-1]
+    assert pred_nt[1] == pytest.approx(cfg.min_soc, abs=3)  # bez dopĺňania predajov tu ostávalo ~23 %

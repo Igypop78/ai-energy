@@ -86,6 +86,7 @@ class Window:
     hranica: float = 0.0
     predaj: set[int] = field(default_factory=set)
     fve_kwh: float = 0.0
+    kandidati: list = field(default_factory=list, repr=False)  # úseky nad prahom zoradené od najdrahšieho
 
 
 @dataclass
@@ -237,7 +238,8 @@ def plan(
             e = max(e0, min(e_ciel, e0 + nt_h * cfg.charge_kw)) + pb_spolu
         e_sell = e - house_reserve(slots, w, max(start, w.nt_do), cfg)
         n = math.ceil(e_sell / kwh_slot - 1e-9) if e_sell > 0 else 0
-        top = sorted(nad, key=lambda x: -_sell(x, cfg))[:n]
+        w.kandidati = sorted(nad, key=lambda x: -_sell(x, cfg))
+        top = w.kandidati[:n]
         top_t = {int(x["t"]) for x in top}
         extra = {int(x["t"]) for x in nad if w.nt2 and x["t"] >= w.nt2} - top_t
         w.predaj = top_t | extra
@@ -249,7 +251,34 @@ def plan(
         predane = min(max(0.0, e_sell), len(top) * kwh_slot)
         carry = max(0.0, e - predane - cfg.house_kw * vt_h)
 
-    # 2) simulácia slot po slote
+    # 2) simulácia; odhad energie v kroku 1 je hrubý (napr. nezahŕňa, koľko batériu nabije slnko pred NT),
+    #    preto: ak okno skončí s energiou navyše, pridaj ďalšie najdrahšie úseky a simuluj znova
+    out = _simulate(slots, windows, soc, cfg, current_mode)
+    for _ in range(8):
+        pridane = False
+        for w in windows:
+            vt_end = w.nt2 if w.nt2 else w.do
+            pred = [r for r in out.sloty if w.od <= r[0] < vt_end]
+            if not pred:
+                continue
+            navyse = (pred[-1][1] - cfg.min_soc) / 100 * kap
+            k = int(navyse // kwh_slot)
+            if k < 1:
+                continue
+            nove = [x for x in w.kandidati if int(x["t"]) not in w.predaj and x["t"] < vt_end][:k]
+            if nove:
+                w.predaj |= {int(x["t"]) for x in nove}
+                w.hranica = min([w.hranica or 1e9] + [_cmp(x, cfg) for x in nove])
+                pridane = True
+        if not pridane:
+            break
+        out = _simulate(slots, windows, soc, cfg, current_mode)
+    return out
+
+
+def _simulate(slots: list[dict[str, float]], windows: list[Window], soc: float, cfg: PlanConfig, current_mode: str | None) -> Plan:
+    """Simulácia SOC slot po slote podľa okien (predajné úseky, cieľ NT)."""
+    kap, kwh_slot = cfg.capacity_kwh, cfg.kwh_slot
     out = Plan(sloty=[], okna=windows)
     s = soc
     posledna = "predaj" if current_mode == MODE_SELL else ("N" if current_mode == MODE_CHARGE else "")
