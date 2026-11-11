@@ -2,6 +2,13 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.9.5] – 2026-11-11
+
+### Zmenené
+- Igy Price Action Card: pri *Nabíjaní zo siete* a *Dom zo siete* sa v pláne ukazuje **cena nákupu** podľa tarify
+  (NT/VT, napr. „nákup 120 €/MWh“) namiesto priemeru spotu. Ostatné akcie ukazujú spot ako doteraz.
+- `sensor.ai_energy_plan` má atribúty `cena_nt`, `cena_vt`, `nt_intervaly`.
+
 ## [0.9.4] – 2026-11-08
 
 ### Opravené

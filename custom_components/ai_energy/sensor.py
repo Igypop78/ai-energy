@@ -156,6 +156,10 @@ class PlanSensor(_Base):
             "max_soc": cfg.max_soc,
             "soc": d.get("soc"),
             "soc_entity": self.coordinator.cfg.get(CONF_SOC_ENTITY),
+            # nákupná tarifa – karta pri nabíjaní a „dom zo siete“ ukazuje cenu nákupu namiesto spotu
+            "cena_nt": cfg.price_nt,
+            "cena_vt": cfg.price_vt,
+            "nt_intervaly": [list(x) for x in cfg.nt_intervals],
         }
 
 

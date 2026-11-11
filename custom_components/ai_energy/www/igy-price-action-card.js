@@ -15,7 +15,7 @@
  */
 (function () {
   'use strict';
-  const VERSION = '3.1.0';
+  const VERSION = '3.2.0';
   // cena: neutrálna škála (nekoliduje s farbami akcií) – lacné svetlé, bežné sivé, nad prahom predaja zelená (ako predaj)
 const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' };
   const ACT = {
@@ -186,6 +186,12 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
       const day = all.filter((x) => x[0] >= T0 && x[0] < T1), prah = this._prah(), unit = c.unit;
       const pmap = {}; day.forEach((x) => { pmap[x[0]] = x[1]; });
       const avg = (a, b) => { const v = day.filter((x) => x[0] >= a && x[0] < b).map((x) => x[1]); return v.length ? v.reduce((p, q) => p + q, 0) / v.length : null; };
+      // pri nabíjaní zo siete a „dom zo siete“ je dôležitá cena nákupu (tarifa NT/VT), nie spot
+      const pa = (pl && pl.attributes) || {}, ntI = pa.nt_intervaly || [];
+      const buyAt = (ms) => { const d = new Date(ms), m = d.getHours() * 60 + d.getMinutes(); return ntI.some(([a, b]) => (a <= b ? m >= a && m < b : m >= a || m < b)) ? pa.cena_nt : pa.cena_vt; };
+      const avgBuy = (a, b) => { const v = day.filter((x) => x[0] >= a && x[0] < b).map((x) => buyAt(x[0])); return v.length ? v.reduce((p, q) => p + q, 0) / v.length : null; };
+      const BUY = { N: 1, G: 1 };
+      const priceTxt = (c, a, b) => { if (BUY[c] && pa.cena_vt != null) { const v = avgBuy(a, b); return v != null ? 'nákup ' + Math.round(v) : null; } const v = avg(a, b); return v != null ? 'Ø ' + Math.round(v) : null; };
       let h = `<div class="hl">${ui('M13 2 4 14h7l-1 8 9-12h-7z')}<span>${esc(c.title)}</span><div class="seg"><b data-day="0" class="${isToday ? 'on' : ''}">Dnes</b><b data-day="1" class="${!isToday ? 'on' : ''}${hasTom ? '' : ' dis'}">Zajtra</b></div></div>`;
       if (!day.length) { box.innerHTML = h + '<div class="msg">Pre tento deň zatiaľ nie sú ceny.</div>'; box.__h = ''; return; }
       // plán → bloky
@@ -223,13 +229,13 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
           const lo = Math.max(0, Math.min(100, Math.min(s0, s1))), hi = Math.max(0, Math.min(100, Math.max(s0, s1)));
           const isX = b.mix.length > 0 && open, op = isX && exp.has(b.t);
           const mix = b.mix.length ? ` · + ${b.mix.map((m) => `<span style="color:${ACT[m].c}">●</span>`).join(' ')}${isX ? `<span class="chev${op ? ' o' : ''}">${ui('m6 9 6 6 6-6')}</span>` : ''}` : '';
-          const sub = cur ? `do ${this._hm(be)} · ešte ${this._dur(be - now)}${mix}` : `${this._dur(dur)}${av != null ? ' · Ø ' + Math.round(av) + ' ' + esc(unit) : ''}${mix}`;
+          const sub = cur ? `do ${this._hm(be)} · ešte ${this._dur(be - now)}${mix}` : `${this._dur(dur)}${(() => { const t = priceTxt(b.c, bt, be); return t ? ' · ' + t + ' ' + esc(unit) : ''; })()}${mix}`;
           const pg = cur ? `<span class="pg"><i style="width:${Math.max(0, Math.min(100, (now - bt) / dur * 100)).toFixed(1)}%;background:${a.c}"></i></span>` : '';
           // rozbalenie: pôvodné úseky v rámci bloku
           let det = '';
           if (op) {
             const runs = []; kin.forEach((x) => { const l = runs[runs.length - 1]; if (l && l.c === x[2] && l.e === x[0]) { l.e = x[0] + 900000; l.s1 = x[1]; } else runs.push({ c: x[2], t: x[0], e: x[0] + 900000, s0: socBefore(x[0], x[1]), s1: x[1] }); });
-            det = `<div class="det">${runs.map((r) => { const ra = avg(r.t, r.e), pr = isToday && r.e <= now; return `<div class="dr${pr ? ' past' : ''}"><i style="background:${ACT[r.c].c}"></i><span class="num">${this._hm(r.t)}–${this._hm(r.e)}</span><span class="dn">${ACT[r.c].t}${ra != null ? `<small class="num"> · ${Math.round(ra)}</small>` : ''}</span><span class="num ds">${Math.round(r.s0)} → ${Math.round(r.s1)} %</span></div>`; }).join('')}</div>`;
+            det = `<div class="det">${runs.map((r) => { const ra = priceTxt(r.c, r.t, r.e), pr = isToday && r.e <= now; return `<div class="dr${pr ? ' past' : ''}"><i style="background:${ACT[r.c].c}"></i><span class="num">${this._hm(r.t)}–${this._hm(r.e)}</span><span class="dn">${ACT[r.c].t}${ra != null ? `<small class="num"> · ${ra.replace('Ø ', '')}</small>` : ''}</span><span class="num ds">${Math.round(r.s0)} → ${Math.round(r.s1)} %</span></div>`; }).join('')}</div>`;
           }
           return `<div class="it${cur ? ' cur' : ''}${ps0 ? ' past' : ''}${isX ? ' x' : ''}" ${isX ? `data-x="${b.t}"` : ''} style="--c:${a.c};min-height:${Math.round(Math.max(46, Math.min(104, dur / 3600000 * 22)))}px"><div class="tm num">${this._hm(bt)}</div><div class="rail"><i></i></div>`
             + `<div class="bd">${a.e} ${a.t}<small class="num">${sub}</small>${pg}</div>`
