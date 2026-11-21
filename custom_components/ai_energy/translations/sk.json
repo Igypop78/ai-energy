@@ -573,6 +573,9 @@
       },
       "bateria_riadenie": {
         "name": "Batéria – riadenie"
+      },
+      "balancovanie": {
+        "name": "Balancovanie batérie"
       }
     }
   },

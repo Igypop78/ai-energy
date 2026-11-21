@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import AiEnergyConfigEntry
-from .const import BAT_CONTROL, DOMAIN, EV_CONTROL, EV_USE_NT, EV_USE_PV, EV_USE_SPOT, inverter_enabled
+from .const import BAT_CONTROL, SET_BALANCING, DOMAIN, EV_CONTROL, EV_USE_NT, EV_USE_PV, EV_USE_SPOT, inverter_enabled
 from .entity import device_info
 
 SWITCHES = (
@@ -25,6 +25,7 @@ SWITCHES = (
 async def async_setup_entry(hass: HomeAssistant, entry: AiEnergyConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     if entry.runtime_data.ev:
         async_add_entities(EvSwitch(entry, d) for d in SWITCHES)
+    async_add_entities([BalancingSwitch(entry, SwitchEntityDescription(key=SET_BALANCING, translation_key=SET_BALANCING, icon="mdi:battery-sync", entity_category=EntityCategory.CONFIG))])
     if inverter_enabled({**entry.data, **entry.options}):
         async_add_entities([BatControlSwitch(entry, SwitchEntityDescription(key=BAT_CONTROL, translation_key=BAT_CONTROL, icon="mdi:steering"))])
 
@@ -80,5 +81,29 @@ class BatControlSwitch(EvSwitch):
 
     async def _set(self, value: bool) -> None:
         self._store[BAT_CONTROL] = value
+        self.async_write_ha_state()
+        await self._entry.runtime_data.plan.async_request_refresh()
+
+
+class BalancingSwitch(BatControlSwitch):
+    """Balancovanie batérie: v NT nabiť na 100 % a nechať menič v nabíjaní až do konca NT (ak sa nepredáva)."""
+
+    @property
+    def _store(self) -> dict[str, Any]:
+        return self._entry.runtime_data.settings
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self._store.get(SET_BALANCING))
+
+    async def async_added_to_hass(self) -> None:
+        await super(EvSwitch, self).async_added_to_hass()
+        last = await self.async_get_last_state()
+        if last and last.state in ("on", "off"):
+            self._store[SET_BALANCING] = last.state == "on"
+            await self._entry.runtime_data.plan.async_request_refresh()
+
+    async def _set(self, value: bool) -> None:
+        self._store[SET_BALANCING] = value
         self.async_write_ha_state()
         await self._entry.runtime_data.plan.async_request_refresh()

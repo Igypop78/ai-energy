@@ -62,6 +62,7 @@ async def test_inverter_control(hass):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
     assert hass.states.get("switch.ai_energy_bateria_riadenie").state == "off"
+    assert hass.states.get("switch.ai_energy_balancovanie").state == "off"
     assert hass.states.get("select.ai_energy_bateria_rezim").state == "auto"
     assert not calls  # riadenie vypnuté → nič sa neposiela
     assert "Len odporúčanie" in hass.states.get("sensor.ai_energy_dovod").state

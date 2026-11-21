@@ -36,6 +36,7 @@ from .const import (
     SET_CHARGE_KW,
     SET_MAX_SOC,
     SET_MIN_SOC,
+    SET_BALANCING,
     SET_PV_CORRECTION,
     SET_THRESHOLD,
     BAT_CONTROL,
@@ -154,6 +155,7 @@ class PlanCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             sell_fixed=float(c.get(CONF_SELL_FIXED) or 0),
             sell_bands=_intervals(c.get(CONF_SELL_BANDS)),
             sell_band_price=float(c.get(CONF_SELL_BAND_PRICE) or 0),
+            balancing=bool(s.get(SET_BALANCING, False)),
         )
 
     async def _async_update_house(self) -> None:

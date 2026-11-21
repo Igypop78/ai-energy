@@ -7,21 +7,21 @@
  */
 (function () {
   'use strict';
-  const VERSION = '1.3.0';
+  const VERSION = '1.4.0';
   const E = {
     mode: 'sensor.ai_energy_odporucany_rezim', why: 'sensor.ai_energy_dovod', plan: 'sensor.ai_energy_plan',
     minSoc: 'number.ai_energy_min_soc', maxSoc: 'number.ai_energy_max_soc', prah: 'number.ai_energy_prah_predaja',
     chargeKw: 'number.ai_energy_nabijaci_vykon', pvCorr: 'number.ai_energy_korekcia_fve',
     evMode: 'select.ai_energy_auto_rezim', evTime: 'time.ai_energy_auto_cas', evA: 'number.ai_energy_auto_prud',
     evWhy: 'sensor.ai_energy_auto_dovod', evCtl: 'switch.ai_energy_auto_riadenie', evNt: 'switch.ai_energy_auto_nt',
-    batMode: 'select.ai_energy_bateria_rezim', batDur: 'select.ai_energy_bateria_rucne_na', batCtl: 'switch.ai_energy_bateria_riadenie',
+    balance: 'switch.ai_energy_balancovanie', batMode: 'select.ai_energy_bateria_rezim', batDur: 'select.ai_energy_bateria_rucne_na', batCtl: 'switch.ai_energy_bateria_riadenie',
     evPv: 'switch.ai_energy_auto_fve', evSpot: 'switch.ai_energy_auto_spot', evSpotP: 'number.ai_energy_auto_spot_cena'
   };
   const MODE = {
     predaj: ['Predaj z batérie', '#30d158', '💰'], predaj_fve: ['Predaj len z FVE', '#b4e34f', '🌤️'], nabijanie: ['Nabíjanie zo siete', '#ff453a', '🔋'],
     siet: ['Dom zo siete', '#8e8e93', '⏸️'], bez_pretokov: ['Bez pretokov', '#ffd60a', '🚫'], normal: ['Bežná prevádzka', '#64d2ff', '🏠']
   };
-  const ACT = { P: 'predaj z batérie', E: 'predaj len z FVE', N: 'nabíjanie zo siete', F: 'FVE nabíja batériu', O: 'prebytok do siete', G: 'dom zo siete', D: 'dom z batérie' };
+  const ACT = { P: 'predaj z batérie', E: 'predaj len z FVE', N: 'nabíjanie zo siete', F: 'FVE nabíja batériu', O: 'prebytok do siete', G: 'dom zo siete', D: 'dom z batérie', B: 'balancovanie batérie' };
   const DUR = [['1h', '1 h'], ['2h', '2 h'], ['4h', '4 h'], ['nt', 'do NT'], ['trvalo', 'natrvalo']];
   const EVM = [['off', 'Vypnuté'], ['now', 'Hneď'], ['time', 'Od času'], ['ai', 'AI']];
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -159,7 +159,7 @@
     _render() {
       if (!this._hass || !this._cfg) return;
       const pid = this._powerId();
-      if (!this._changed([E.mode, E.why, E.plan, E.minSoc, E.maxSoc, E.prah, E.chargeKw, E.pvCorr, E.batMode, E.batDur, E.batCtl, pid].filter(Boolean))) return;
+      if (!this._changed([E.mode, E.why, E.plan, E.minSoc, E.maxSoc, E.prah, E.chargeKw, E.pvCorr, E.batMode, E.batDur, E.batCtl, E.balance, pid].filter(Boolean))) return;
       const m = this._s(E.mode);
       if (!m) { this._shell('AI nastavenia', 'mdi:home-battery', '', '<div class="msg">Nenašiel som AI Energy. Nainštaluj a nastav integráciu AI Energy.</div>'); return; }
       const ap = m.attributes.aplikovany_rezim || m.state, man = !!m.attributes.rucne;
@@ -208,6 +208,7 @@
           + `<div class="small" style="margin:-2px 2px 6px">predaj skončí tak, aby po spotrebe domu do ďalšej NT ostala batéria na tejto hodnote</div>`
           + this._slider(E.maxSoc, 'Max SOC nabíjania zo siete', '#ff453a', '%')
           + this._stepper(E.prah, 'Min. predajná cena', this._prahHint(pa), 5, kwh)
+          + this._toggle(E.balance, 'Balancovanie batérie', 'v NT nabije na 100 % a drží nabíjanie do konca NT (ak sa nepredáva)')
           + `<div class="sub">Pokročilé</div>`
           + this._stepper(E.chargeKw, 'Nabíjací výkon zo siete', '', 0.5, (v) => fmt(v, 1) + ' kW')
           + this._slider(E.pvCorr, 'Korekcia predpovede FVE', '#ffc53d', '%');

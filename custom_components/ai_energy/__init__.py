@@ -28,6 +28,7 @@ from .const import (
     SET_CHARGE_KW,
     SET_MAX_SOC,
     SET_MIN_SOC,
+    SET_BALANCING,
     SET_PV_CORRECTION,
     SET_THRESHOLD,
     CONF_CHARGE_KW,
@@ -77,6 +78,7 @@ def initial_settings(entry: ConfigEntry) -> dict[str, float]:
         SET_MAX_SOC: DEFAULT_MAX_SOC,
         SET_CHARGE_KW: float(cfg.get(CONF_CHARGE_KW, DEFAULT_CHARGE_KW)),
         SET_PV_CORRECTION: DEFAULT_PV_CORRECTION,
+        SET_BALANCING: False,
     }
 
 

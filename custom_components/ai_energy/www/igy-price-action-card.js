@@ -15,13 +15,14 @@
  */
 (function () {
   'use strict';
-  const VERSION = '3.2.0';
+  const VERSION = '3.3.0';
   // cena: neutrálna škála (nekoliduje s farbami akcií) – lacné svetlé, bežné sivé, nad prahom predaja zelená (ako predaj)
 const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' };
   const ACT = {
     // zelená = peniaze idú k nám, červená = platíme sieti, oranžová/žltá = slnko, modrá = batéria napája dom
     P: { t: 'Predaj z batérie', c: '#30d158', e: '💰' }, E: { t: 'Predaj len z FVE', c: '#b4e34f', e: '🌤️' }, N: { t: 'Nabíjanie zo siete', c: '#ff453a', e: '🔋' }, F: { t: 'FVE nabíja batériu', c: '#ff9f0a', e: '☀️' },
-    O: { t: 'Batéria plná, prebytok do siete', c: '#ffd60a', e: '☀️' }, G: { t: 'Dom zo siete, batéria stojí', c: '#636366', e: '⏸️' }, D: { t: 'Dom z batérie', c: '#64d2ff', e: '🏠' }
+    O: { t: 'Batéria plná, prebytok do siete', c: '#ffd60a', e: '☀️' }, G: { t: 'Dom zo siete, batéria stojí', c: '#636366', e: '⏸️' }, D: { t: 'Dom z batérie', c: '#64d2ff', e: '🏠' },
+    B: { t: 'Balancovanie batérie', c: '#bf5af2', e: '🔋' }
   };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
   const ui = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="${p}"/></svg>`;
@@ -190,7 +191,7 @@ const C = { cheap: '#d1d1d6', norm: '#8e8e93', high: '#30d158', sol: '#ffc53d' }
       const pa = (pl && pl.attributes) || {}, ntI = pa.nt_intervaly || [];
       const buyAt = (ms) => { const d = new Date(ms), m = d.getHours() * 60 + d.getMinutes(); return ntI.some(([a, b]) => (a <= b ? m >= a && m < b : m >= a || m < b)) ? pa.cena_nt : pa.cena_vt; };
       const avgBuy = (a, b) => { const v = day.filter((x) => x[0] >= a && x[0] < b).map((x) => buyAt(x[0])); return v.length ? v.reduce((p, q) => p + q, 0) / v.length : null; };
-      const BUY = { N: 1, G: 1 };
+      const BUY = { N: 1, G: 1, B: 1 };
       const priceTxt = (c, a, b) => { if (BUY[c] && pa.cena_vt != null) { const v = avgBuy(a, b); return v != null ? 'nákup ' + Math.round(v) : null; } const v = avg(a, b); return v != null ? 'Ø ' + Math.round(v) : null; };
       let h = `<div class="hl">${ui('M13 2 4 14h7l-1 8 9-12h-7z')}<span>${esc(c.title)}</span><div class="seg"><b data-day="0" class="${isToday ? 'on' : ''}">Dnes</b><b data-day="1" class="${!isToday ? 'on' : ''}${hasTom ? '' : ' dis'}">Zajtra</b></div></div>`;
       if (!day.length) { box.innerHTML = h + '<div class="msg">Pre tento deň zatiaľ nie sú ceny.</div>'; box.__h = ''; return; }

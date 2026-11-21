@@ -52,6 +52,7 @@ SET_MIN_SOC = "min_soc"
 SET_MAX_SOC = "max_soc"
 SET_CHARGE_KW = "nabijaci_vykon"
 SET_PV_CORRECTION = "korekcia_fve"
+SET_BALANCING = "balancovanie"  # switch – v NT nabiť na 100 % a držať nabíjanie
 
 DEFAULT_MIN_SOC = 15.0
 DEFAULT_MAX_SOC = 95.0

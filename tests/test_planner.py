@@ -281,3 +281,18 @@ def test_pv_before_nt_energy_is_sold_in_evening():
     koniec_nt = next(x for x in p.sloty if x[0] == ts(29, 15, 30))
     assert koniec_nt[1] >= 97
     assert any(a == "P" for t, _, a in p.sloty if ts(29, 6) <= t < ts(29, 9))  # ráno sa predáva
+
+
+def test_balancing_charges_to_full_and_holds_until_nt_end():
+    cfg = _cfg(balancing=True, max_soc=90)
+    now = ts(28, 23, 50)
+    sl, p = run(now, 60, cfg=cfg)
+    nt = [x for x in p.sloty if ts(28, 23, 45) <= x[0] < ts(29, 5, 45)]
+    assert all(a in ("N", "B") for _, _, a in nt)
+    assert max(soc for _, soc, _ in nt) == pytest.approx(100, abs=0.1)  # nad max SOC – balancovanie
+    assert nt[-1][2] == "B"
+    rec = P.recommend(p, sl, ts(29, 4), 100, cfg, TZ)
+    assert rec.rezim == P.MODE_CHARGE and "Balancovanie" in rec.dovod
+    # bez balancovania by v NT pri plnej batérii išiel dom zo siete
+    sl0, p0 = run(ts(29, 4), 100)
+    assert P.recommend(p0, sl0, ts(29, 4), 100, CFG, TZ).rezim == P.MODE_GRID

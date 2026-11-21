@@ -573,6 +573,9 @@
       },
       "bateria_riadenie": {
         "name": "Battery control"
+      },
+      "balancovanie": {
+        "name": "Battery balancing"
       }
     }
   },

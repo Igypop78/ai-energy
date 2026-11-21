@@ -2,6 +2,14 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.10.0] – 2026-11-21
+
+### Pridané
+- **Balancovanie batérie** (`switch.ai_energy_balancovanie`, aj v karte *AI nastavenia → Nastavenia*):
+  keď je zapnuté, cieľ nabíjania v NT je **100 %** (bez ohľadu na max SOC) a po nabití ostáva menič v režime
+  nabíjania až do konca NT – ak sa práve nepredáva. Platí každú NT, kým ho nevypneš.
+  V pláne sa zobrazí ako *Balancovanie batérie* (fialová), dôvod píše „nabíjanie sa drží do konca NT“.
+
 ## [0.9.5] – 2026-11-11
 
 ### Zmenené

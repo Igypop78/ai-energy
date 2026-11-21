@@ -58,6 +58,7 @@ class PlanConfig:
     sell_bands: Sequence[tuple[int, int]] = ()  # pásma s inou výkupnou cenou (minúty od polnoci)
     sell_band_price: float = 0.0  # €/MWh
     wear: float = 45.0  # opotrebenie batérie €/MWh
+    balancing: bool = False  # balancovanie: v NT nabiť na 100 % a držať nabíjanie do konca NT
     charge_eff: float = 0.9
 
     @property
@@ -340,6 +341,9 @@ def _simulate(slots: list[dict[str, float]], windows: list[Window], soc: float, 
             kwh = min(cfg.charge_kw * SLOT / 3600 + x["pb"], (ciel - s) / 100 * kap)
             s += kwh / kap * 100
             out.nakup_kwh += max(0.0, kwh - x["pb"])
+        elif je_nt and cfg.balancing:
+            akcia = "B"  # balancovanie: batéria plná, menič ostáva v nabíjaní do konca NT
+            s = 100.0
         elif je_nt:
             akcia = "G"
             s = min(100.0, s + x["pv"] / kap * 100)
@@ -378,6 +382,8 @@ def _ciel(w: Window, slots: Sequence[Mapping[str, float]], start: int, cfg: Plan
         kum = max(kum - y["pb"] + dom + (kwh_slot if y["t"] >= w.nt_do and _cmp(y, cfg) >= cfg.threshold else 0.0), -(100 - cfg.min_soc) / 100 * kap)
         maxk = max(maxk, kum)
     w.ciel = min(cfg.max_soc, cfg.min_soc + maxk / kap * 100) if psl else cfg.max_soc
+    if cfg.balancing:
+        w.ciel = 100.0  # balancovanie článkov: nabiť do plna
 
 
 def house_reserve(slots: Sequence[Mapping[str, float]], w: Window, t_from: int, cfg: PlanConfig) -> float:
@@ -463,7 +469,9 @@ def recommend(
     if export_fve:
         return Recommendation(MODE_SELL_PV, f"Predaj len z FVE {prebytok:.1f} kW za {c} € – batéria na minime ({s_txt}), nevybíja sa", pool)
     if nabijat:
-        return Recommendation(MODE_CHARGE, f"NT nabíjanie: SOC {s_txt} → {ciel:.0f} %", pool)
+        return Recommendation(MODE_CHARGE, f"NT nabíjanie{' (balancovanie)' if cfg.balancing else ''}: SOC {s_txt} → {ciel:.0f} %", pool)
+    if je_nt and cfg.balancing:
+        return Recommendation(MODE_CHARGE, f"Balancovanie batérie: SOC {s_txt} – nabíjanie sa drží do konca NT", pool)
     if cfg.sell_mode == "none" and pv_kw > 0.5:
         return Recommendation(MODE_NO_EXPORT, "Predaj vypnutý – bez pretokov", pool)
     if cur is not None and _sell(cur, cfg) <= 0 and pv_kw > 0.5:
