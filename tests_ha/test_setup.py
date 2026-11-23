@@ -86,8 +86,6 @@ async def test_ev_power_entity_in_kw(hass):
     hass.states.async_set("sensor.battery_soc", "50", {"unit_of_measurement": "%"})
     hass.states.async_set("switch.wallbox", "off")
     hass.states.async_set("number.wallbox_power", "7.4", {"unit_of_measurement": "kW", "min": 1.4, "max": 22, "step": 0.1})
-    calls = async_mock_service(hass, "number", "set_value")
-    async_mock_service(hass, "switch", "turn_on")
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={
@@ -99,7 +97,10 @@ async def test_ev_power_entity_in_kw(hass):
     with patch("custom_components.ai_energy.async_setup", return_value=True):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
-    # number/switch služby sú tu nahradené – nastavenia auta zapíšeme priamo
+    # služby number/switch nahradíme až po načítaní (inak ich prepíše komponent number/switch)
+    calls = async_mock_service(hass, "number", "set_value")
+    async_mock_service(hass, "switch", "turn_on")
+    # nastavenia auta zapíšeme priamo
     s = entry.runtime_data.ev_settings
     s["auto_prud"], s["auto_riadenie"], s["auto_rezim"] = 16, True, "now"
     await entry.runtime_data.ev.async_refresh()
