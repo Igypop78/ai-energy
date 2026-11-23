@@ -18,7 +18,10 @@ from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_BAT_POWER,
+    CONF_BAT_POWER_INVERT,
     CONF_BAT_VOLTAGE,
+    CONF_EV_CURRENT_UNIT,
     CONF_INV_CURRENT,
     CONF_INV_OPTION,
     CONF_INV_SELECT,
@@ -318,6 +321,7 @@ def _s_auto(hass: HomeAssistant, c: dict[str, Any]) -> vol.Schema:
         {
             _req(CONF_EV_SWITCH, v(CONF_EV_SWITCH)): EV_SWITCH,
             _opt(CONF_EV_CURRENT, v(CONF_EV_CURRENT)): EV_CURRENT,
+            vol.Required(CONF_EV_CURRENT_UNIT, default=c.get(CONF_EV_CURRENT_UNIT, "auto")): _choice(CONF_EV_CURRENT_UNIT, ["auto", "A", "kW", "W"]),
             vol.Required(CONF_EV_PHASES, default=str(c.get(CONF_EV_PHASES, DEFAULT_EV_PHASES))): PHASES(CONF_EV_PHASES),
             _opt(CONF_EV_PLUG, v(CONF_EV_PLUG)): EV_STATE,
             _opt(CONF_EV_CHARGING, v(CONF_EV_CHARGING)): EV_STATE,
@@ -347,9 +351,11 @@ def _s_istic(hass: HomeAssistant, c: dict[str, Any]) -> vol.Schema:
             vol.Required(CONF_BREAKER_A, default=c.get(CONF_BREAKER_A, 25)): _num(6, 200, 1, "A"),
             vol.Required(CONF_BREAKER_PHASES, default=str(c.get(CONF_BREAKER_PHASES, 3))): PHASES(CONF_BREAKER_PHASES),
             _opt(CONF_GRID_POWER, c.get(CONF_GRID_POWER)): POWER,
+            _opt(CONF_BAT_POWER, c.get(CONF_BAT_POWER) or (_find(hass, "sensor", "battery_power") if CONF_BAT_POWER not in c else None)): POWER,
             **_adv(
                 {
                     vol.Required(CONF_GRID_INVERT, default=bool(c.get(CONF_GRID_INVERT, False))): BOOL,
+                    vol.Required(CONF_BAT_POWER_INVERT, default=bool(c.get(CONF_BAT_POWER_INVERT, "deye" in str(c.get(CONF_BAT_POWER, "")) or (_find(hass, "sensor", "battery_power") or "").startswith("sensor.deye")))): BOOL,
                     vol.Required(CONF_BREAKER_RESERVE, default=c.get(CONF_BREAKER_RESERVE, DEFAULT_BREAKER_RESERVE)): _num(0, 50, 1, "%"),
                     _opt(CONF_CABLE_KW, c.get(CONF_CABLE_KW) or None): _num(0, 200, 0.5, "kW"),
                 }
@@ -433,7 +439,7 @@ STEPS: dict[str, tuple[Callable[[HomeAssistant, dict[str, Any]], vol.Schema], Ca
     "menic_mapovanie": (_s_menic_mapovanie, None),
     "auto": (_s_auto, _check_auto),
     "auto_moznosti": (_s_auto_moznosti, _check_moznosti),
-    "istic": (_s_istic, _check_entities(CONF_GRID_POWER)),
+    "istic": (_s_istic, _check_entities(CONF_GRID_POWER, CONF_BAT_POWER)),
 }
 
 

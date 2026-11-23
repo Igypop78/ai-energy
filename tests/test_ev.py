@@ -137,3 +137,39 @@ def test_time_mode_resumes_after_restart():
     st = E.EvState()
     d = E.decide(CFG, inp(now=60, mode=E.MODE_TIME, manual_a=16, is_on=True, connected=True), st)
     assert d.on
+
+
+def test_measured_battery_power_instead_of_plan():
+    # plán hovorí „nabíja“, ale batéria pri balancovaní berie len 0,3 kW → auto dostane plný prúd
+    d = E.decide(CFG, inp(in_nt=True, plan_action="N", bat_charge_w=300, grid_w=1100), E.EvState())
+    assert d.on and d.amps == 16
+
+
+def test_grid_low_holds_minimum_then_stops_and_restarts_after_delay():
+    st = E.EvState()
+    d = E.decide(CFG, inp(now=0, in_nt=True, bat_charge_w=300, grid_w=1000), st)
+    assert d.on and d.amps == 16
+    # batéria začne nabíjať 9,3 kW → na kábli 12 kW ostáva 2,7 kW < 6 A: najprv drží minimum
+    d = E.decide(CFG, inp(now=60, in_nt=True, bat_charge_w=9300, grid_w=21000, is_on=True, charging=True, current_a=16), st)
+    assert d.on and d.amps == 6
+    d = E.decide(CFG, inp(now=100, in_nt=True, bat_charge_w=9300, grid_w=14500, is_on=True, charging=True, current_a=6), st)
+    assert d.on and d.amps == 6
+    d = E.decide(CFG, inp(now=130, in_nt=True, bat_charge_w=9300, grid_w=14500, is_on=True, charging=True, current_a=6), st)
+    assert d.on is False
+    # rezerva sa vráti – zapne sa až keď vydrží minútu
+    d = E.decide(CFG, inp(now=200, in_nt=True, bat_charge_w=200, grid_w=1000), st)
+    assert d.on is False and "vydrží" in d.dovod
+    d = E.decide(CFG, inp(now=265, in_nt=True, bat_charge_w=200, grid_w=1000), st)
+    assert d.on and d.amps >= 6
+
+
+def test_current_increase_is_delayed_decrease_immediate():
+    st = E.EvState()
+    E.decide(CFG, inp(now=0, in_nt=True, bat_charge_w=6000, grid_w=7000), st)  # 6 kW na kábli → 8 A
+    assert st.last_amps == 8
+    d = E.decide(CFG, inp(now=20, in_nt=True, bat_charge_w=1000, grid_w=7000, is_on=True, charging=True, current_a=8), st)
+    assert d.amps == 8  # zvýšenie až po minúte
+    d = E.decide(CFG, inp(now=70, in_nt=True, bat_charge_w=1000, grid_w=7000, is_on=True, charging=True, current_a=8), st)
+    assert d.amps == 15  # (12 − 1) kW / 690 W
+    d = E.decide(CFG, inp(now=80, in_nt=True, bat_charge_w=7000, grid_w=15000, is_on=True, charging=True, current_a=16), st)
+    assert d.amps == 7  # zníženie hneď

@@ -76,3 +76,33 @@ async def test_inverter_control(hass):
     st = hass.states.get("sensor.ai_energy_odporucany_rezim")
     assert st.attributes["aplikovany_rezim"] == "nabijanie" and st.attributes["rucne"] is True
     assert hass.states.get("sensor.ai_energy_dovod").state.startswith("Ručne:")
+
+
+async def test_ev_power_entity_in_kw(hass):
+    """Wallbox nastavovaný výkonom v kW (napr. Huawei): prúd sa prepočíta na kW."""
+    from pytest_homeassistant_custom_component.common import async_mock_service
+
+    hass.states.async_set("sensor.okte_prices_today", "unknown")
+    hass.states.async_set("sensor.battery_soc", "50", {"unit_of_measurement": "%"})
+    hass.states.async_set("switch.wallbox", "off")
+    hass.states.async_set("number.wallbox_power", "7.4", {"unit_of_measurement": "kW", "min": 1.4, "max": 22, "step": 0.1})
+    calls = async_mock_service(hass, "number", "set_value")
+    async_mock_service(hass, "switch", "turn_on")
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "price_today": "sensor.okte_prices_today", "soc_entity": "sensor.battery_soc", "capacity_kwh": 10, "house_kwh_day": 12,
+            "has_ev": True, "ev_switch_entity": "switch.wallbox", "ev_current_entity": "number.wallbox_power", "ev_phases": "3",
+        },
+    )
+    entry.add_to_hass(hass)
+    with patch("custom_components.ai_energy.async_setup", return_value=True):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    await hass.services.async_call("number", "set_value", {"entity_id": "number.ai_energy_auto_prud", "value": 16}, blocking=True)
+    await hass.services.async_call("switch", "turn_on", {"entity_id": "switch.ai_energy_auto_riadenie"}, blocking=True)
+    await hass.services.async_call("select", "select_option", {"entity_id": "select.ai_energy_auto_rezim", "option": "now"}, blocking=True)
+    await entry.runtime_data.ev.async_refresh()
+    await hass.async_block_till_done()
+    w = [c.data for c in calls if c.data.get("entity_id") == "number.wallbox_power"]
+    assert w and w[-1]["value"] == 11.0  # 16 A × 3 × 230 V = 11,04 kW → krok 0,1

@@ -111,19 +111,21 @@
         "description": "SmartEVSE is pre-filled automatically.",
         "data": {
           "ev_switch_entity": "Charging on/off",
-          "ev_current_entity": "Charging current",
+          "ev_current_entity": "Charging current or power",
           "ev_phases": "Charger phases",
           "ev_plug_entity": "Is the EV connected?",
           "ev_charging_entity": "Is the EV charging?",
-          "ev_power_entity": "Charger power"
+          "ev_power_entity": "Charger power",
+          "ev_current_unit": "Charging unit"
         },
         "data_description": {
           "ev_switch_entity": "Entity that turns charging on and off: a switch, or a mode select (e.g. select.smartevse_mode).",
-          "ev_current_entity": "Entity that sets the current in A (e.g. Charge Current Override). Without it charging is only switched on/off.",
+          "ev_current_entity": "Entity that sets the charger current (A) or power (kW/W), e.g. Charge Current Override. Without it charging is only switched on/off.",
           "ev_phases": "Most home wallboxes are 3-phase.",
           "ev_plug_entity": "Optional. Connected / Disconnected sensor (e.g. sensor.smartevse_evplugstate).",
           "ev_charging_entity": "Optional. Charging sensor (e.g. sensor.smartevse_state) – used to detect a full battery in the Start time mode.",
-          "ev_power_entity": "Optional. More precise than the estimate from current."
+          "ev_power_entity": "Optional. More precise than the estimate from current.",
+          "ev_current_unit": "Auto = from the entity. A for current (SmartEVSE), kW or W if the wallbox sets power (e.g. Huawei)."
         },
         "sections": {
           "pokrocile": {
@@ -153,11 +155,13 @@
         "data": {
           "breaker_a": "Main breaker",
           "breaker_phases": "Grid connection phases",
-          "grid_power_entity": "Grid power (meter)"
+          "grid_power_entity": "Grid power (meter)",
+          "battery_power_entity": "Battery power (measured)"
         },
         "data_description": {
           "breaker_a": "Amps per phase – for a 3×25 A breaker enter 25. The limit is calculated with a reserve (Advanced).",
-          "grid_power_entity": "Recommended. Power at the main meter (+ import, − export). Without it the EV cannot charge from surplus or precisely respect the breaker."
+          "grid_power_entity": "Recommended. Power at the main meter (+ import, − export). Without it the EV cannot charge from surplus or precisely respect the breaker.",
+          "battery_power_entity": "Optional, recommended. How much the battery is really charging – the EV then charges at full power when the battery is full (balancing) and is not switched off."
         },
         "sections": {
           "pokrocile": {
@@ -165,12 +169,14 @@
             "data": {
               "grid_invert": "Grid import is negative",
               "breaker_reserve": "Breaker reserve",
-              "cable_kw": "Shared battery + EV limit"
+              "cable_kw": "Shared battery + EV limit",
+              "battery_power_invert": "Battery charging is negative"
             },
             "data_description": {
               "grid_invert": "Enable if the sensor shows grid import as negative (it should be positive when the house draws from the grid).",
               "breaker_reserve": "How many % below the breaker to stay. 10 % at 3×25 A = 15.5 kW limit.",
-              "cable_kw": "Only if battery and wallbox share one cable or breaker (e.g. 12 kW). Battery has priority. Empty = not monitored."
+              "cable_kw": "Only if battery and wallbox share one cable or breaker (e.g. 12 kW). Battery has priority. Empty = not monitored.",
+              "battery_power_invert": "Enable if the sensor shows battery charging as negative (e.g. Deye Battery Power)."
             }
           }
         }
@@ -336,19 +342,21 @@
         "description": "SmartEVSE is pre-filled automatically.",
         "data": {
           "ev_switch_entity": "Charging on/off",
-          "ev_current_entity": "Charging current",
+          "ev_current_entity": "Charging current or power",
           "ev_phases": "Charger phases",
           "ev_plug_entity": "Is the EV connected?",
           "ev_charging_entity": "Is the EV charging?",
-          "ev_power_entity": "Charger power"
+          "ev_power_entity": "Charger power",
+          "ev_current_unit": "Charging unit"
         },
         "data_description": {
           "ev_switch_entity": "Entity that turns charging on and off: a switch, or a mode select (e.g. select.smartevse_mode).",
-          "ev_current_entity": "Entity that sets the current in A (e.g. Charge Current Override). Without it charging is only switched on/off.",
+          "ev_current_entity": "Entity that sets the charger current (A) or power (kW/W), e.g. Charge Current Override. Without it charging is only switched on/off.",
           "ev_phases": "Most home wallboxes are 3-phase.",
           "ev_plug_entity": "Optional. Connected / Disconnected sensor (e.g. sensor.smartevse_evplugstate).",
           "ev_charging_entity": "Optional. Charging sensor (e.g. sensor.smartevse_state) – used to detect a full battery in the Start time mode.",
-          "ev_power_entity": "Optional. More precise than the estimate from current."
+          "ev_power_entity": "Optional. More precise than the estimate from current.",
+          "ev_current_unit": "Auto = from the entity. A for current (SmartEVSE), kW or W if the wallbox sets power (e.g. Huawei)."
         },
         "sections": {
           "pokrocile": {
@@ -378,11 +386,13 @@
         "data": {
           "breaker_a": "Main breaker",
           "breaker_phases": "Grid connection phases",
-          "grid_power_entity": "Grid power (meter)"
+          "grid_power_entity": "Grid power (meter)",
+          "battery_power_entity": "Battery power (measured)"
         },
         "data_description": {
           "breaker_a": "Amps per phase – for a 3×25 A breaker enter 25. The limit is calculated with a reserve (Advanced).",
-          "grid_power_entity": "Recommended. Power at the main meter (+ import, − export). Without it the EV cannot charge from surplus or precisely respect the breaker."
+          "grid_power_entity": "Recommended. Power at the main meter (+ import, − export). Without it the EV cannot charge from surplus or precisely respect the breaker.",
+          "battery_power_entity": "Optional, recommended. How much the battery is really charging – the EV then charges at full power when the battery is full (balancing) and is not switched off."
         },
         "sections": {
           "pokrocile": {
@@ -390,12 +400,14 @@
             "data": {
               "grid_invert": "Grid import is negative",
               "breaker_reserve": "Breaker reserve",
-              "cable_kw": "Shared battery + EV limit"
+              "cable_kw": "Shared battery + EV limit",
+              "battery_power_invert": "Battery charging is negative"
             },
             "data_description": {
               "grid_invert": "Enable if the sensor shows grid import as negative (it should be positive when the house draws from the grid).",
               "breaker_reserve": "How many % below the breaker to stay. 10 % at 3×25 A = 15.5 kW limit.",
-              "cable_kw": "Only if battery and wallbox share one cable or breaker (e.g. 12 kW). Battery has priority. Empty = not monitored."
+              "cable_kw": "Only if battery and wallbox share one cable or breaker (e.g. 12 kW). Battery has priority. Empty = not monitored.",
+              "battery_power_invert": "Enable if the sensor shows battery charging as negative (e.g. Deye Battery Power)."
             }
           }
         }
@@ -597,6 +609,14 @@
       "options": {
         "1": "1 phase",
         "3": "3 phases"
+      }
+    },
+    "ev_current_unit": {
+      "options": {
+        "auto": "Auto from entity",
+        "A": "Current (A)",
+        "kW": "Power (kW)",
+        "W": "Power (W)"
       }
     }
   }

@@ -2,6 +2,19 @@
 
 Formát podľa [Keep a Changelog](https://keepachangelog.com/sk/1.1.0/), verzie podľa [SemVer](https://semver.org/lang/sk/).
 
+## [0.11.0] – 2026-11-23
+
+### Zmenené
+- **Nabíjanie auta (AI) pracuje s prúdom, nie s vypínaním:** pri nedostatku rezervy (istič, spoločný kábel s batériou)
+  sa najprv ubiera prúd; vypne sa až keď nestačí ani minimum dlhšie ako 1 minútu. Znovu sa zapne, keď rezerva
+  vydrží 1 minútu. Prúd sa znižuje hneď, zvyšuje najskôr po minúte – bez skákania hore-dole.
+- Rezerva na spoločnom kábli sa počíta z **meraného výkonu batérie** (nový voliteľný senzor v kroku *Istič a elektromer*),
+  nie z toho, či plán „nabíja“. Pri balancovaní, keď batéria berie len pár stoviek W, auto nabíja naplno.
+
+### Pridané
+- Wallbox nastavovaný **výkonom v kW alebo W** (napr. Huawei): v kroku *Nabíjačka auta* pole *Jednotka nabíjania*
+  (automaticky podľa entity / A / kW / W). Integrácia prepočíta prúd na výkon podľa počtu fáz a kroku entity.
+
 ## [0.10.0] – 2026-11-21
 
 ### Pridané

@@ -21,6 +21,9 @@ EV_MODES = [MODE_OFF, MODE_NOW, MODE_TIME, MODE_AI]
 PV_START_S = 120  # prebytok musí vydržať 2 min, kým sa auto zapne
 PV_STOP_S = 180  # nedostatok prebytku 3 min → auto sa vypne (dovtedy beží na minime)
 DONE_S = 600  # režim „od času“: 10 min bez nabíjania po nabíjaní = dobité
+GRID_HOLD_S = 60  # NT/spot: keď chýba rezerva, auto ešte 1 min drží minimum (bez kmitania pri krátkych špičkách)
+GRID_START_S = 60  # NT/spot: po vypnutí zapni až keď rezerva vydrží 1 min
+UP_DELAY_S = 60  # prúd sa zvyšuje najskôr 1 min po poslednej zmene (znižuje sa hneď)
 
 SELL_MODES = ("predaj", "predaj_fve")  # vtedy ide do siete batéria / drahý predaj – FVE pre auto nepoužiť
 
@@ -63,6 +66,7 @@ class EvInputs:
     spot_limit: float = 0.0
     is_on: bool = False  # nabíjačka je teraz zapnutá
     current_a: float | None = None  # prúd nastavený teraz v nabíjačke
+    bat_charge_w: float | None = None  # meraný výkon nabíjania batérie (+ nabíja); None = odhad z plánu
 
 
 @dataclass
@@ -74,6 +78,11 @@ class EvState:
     pv_ok_since: float | None = None
     pv_bad_since: float | None = None
     pv_on: bool = False
+    grid_on: bool = False
+    grid_low_since: float | None = None
+    grid_ok_since: float | None = None
+    last_amps: int | None = None
+    last_amps_ts: float | None = None
 
 
 @dataclass
@@ -94,7 +103,10 @@ def _ev_w_now(cfg: EvConfig, inp: EvInputs) -> float:
 def headroom_a(cfg: EvConfig, inp: EvInputs) -> tuple[int, str | None]:
     """Koľko A môže auto brať, aby sa neprekročil istič ani kábel. Vráti (A, čo obmedzuje)."""
     ev_w = _ev_w_now(cfg, inp)
-    bat_w = cfg.battery_charge_kw * 1000 if inp.plan_action == "N" else 0.0
+    if inp.bat_charge_w is not None:
+        bat_w = max(0.0, inp.bat_charge_w)  # koľko batéria naozaj nabíja (napr. pri balancovaní takmer nič)
+    else:
+        bat_w = cfg.battery_charge_kw * 1000 if inp.plan_action == "N" else 0.0
     limits: list[tuple[float, str]] = []
     if cfg.grid_limit_kw > 0:
         if inp.grid_w is not None:
@@ -110,6 +122,15 @@ def headroom_a(cfg: EvConfig, inp: EvInputs) -> tuple[int, str | None]:
         if x < a:
             a, why = x, name
     return a, why
+
+
+def _smooth(st: EvState, amps: int, now: float) -> int:
+    """Prúd: zníženie hneď, zvýšenie najskôr 1 min po poslednej zmene – bez skákania hore-dole."""
+    if st.last_amps is not None and amps > st.last_amps and st.last_amps_ts is not None and now - st.last_amps_ts < UP_DELAY_S:
+        return st.last_amps
+    if amps != st.last_amps:
+        st.last_amps, st.last_amps_ts = amps, now
+    return amps
 
 
 def _fmt(a: int, cfg: EvConfig) -> str:
@@ -166,6 +187,8 @@ def decide(cfg: EvConfig, inp: EvInputs, st: EvState) -> EvDecision:
     limit_txt = f", obmedzuje {why}" if why and cap < cfg.max_a else ""
 
     grid_src = None
+    if not ((inp.use_nt and inp.in_nt) or (inp.use_spot and inp.spot is not None and inp.spot <= inp.spot_limit)):
+        st.grid_on, st.grid_low_since, st.grid_ok_since = False, None, None
     if inp.use_nt and inp.in_nt:
         grid_src = ("nt", "nízka tarifa")
     elif inp.use_spot and inp.spot is not None and inp.spot <= inp.spot_limit:
@@ -174,8 +197,25 @@ def decide(cfg: EvConfig, inp: EvInputs, st: EvState) -> EvDecision:
         st.pv_on = False
         st.pv_ok_since = st.pv_bad_since = None
         if cap < cfg.min_a:
+            # najprv sa ubiera prúd; vypne sa, až keď nestačí ani minimum dlhšie ako minútu
+            st.grid_ok_since = None
+            if st.grid_on:
+                if st.grid_low_since is None:
+                    st.grid_low_since = inp.now
+                if inp.now - st.grid_low_since < GRID_HOLD_S:
+                    a = _smooth(st, cfg.min_a, inp.now)
+                    return EvDecision(True, a, f"AI: {grid_src[1]} – rezerva klesla ({why}), držím minimum {_fmt(a, cfg)}", grid_src[0])
+            st.grid_on, st.grid_low_since = False, None
             return EvDecision(False, None, f"AI: {grid_src[1]}, ale nie je rezerva ({why}) – čaká")
-        return EvDecision(True, cap, f"AI: {grid_src[1]} – {_fmt(cap, cfg)}{limit_txt}", grid_src[0])
+        st.grid_low_since = None
+        if not st.grid_on:
+            if st.grid_ok_since is None:
+                st.grid_ok_since = inp.now
+            if not (inp.is_on and inp.charging) and inp.now - st.grid_ok_since < GRID_START_S and not first:
+                return EvDecision(False, None, f"AI: {grid_src[1]} – rezerva {_fmt(cap, cfg)}, čakám, či vydrží")
+            st.grid_on = True
+        a = _smooth(st, cap, inp.now)
+        return EvDecision(True, a, f"AI: {grid_src[1]} – {_fmt(a, cfg)}{limit_txt}", grid_src[0])
 
     if not inp.use_pv:
         return EvDecision(False, None, "AI: mimo NT – čaká")
@@ -202,7 +242,8 @@ def decide(cfg: EvConfig, inp: EvInputs, st: EvState) -> EvDecision:
             if inp.now - st.pv_ok_since < PV_START_S:
                 return EvDecision(False, None, f"AI: prebytok FVE {kw:.1f} kW – čakám, či vydrží")
             st.pv_on = True
-        return EvDecision(True, pv_a, f"AI: prebytok FVE {kw:.1f} kW – {_fmt(pv_a, cfg)}", "fve")
+        a = _smooth(st, pv_a, inp.now)
+        return EvDecision(True, a, f"AI: prebytok FVE {kw:.1f} kW – {_fmt(a, cfg)}", "fve")
 
     st.pv_ok_since = None
     if st.pv_on:

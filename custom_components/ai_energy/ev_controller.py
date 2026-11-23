@@ -16,7 +16,10 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_CABLE_KW,
     CONF_EV_CHARGING,
+    CONF_BAT_POWER,
+    CONF_BAT_POWER_INVERT,
     CONF_EV_CURRENT,
+    CONF_EV_CURRENT_UNIT,
     CONF_EV_MAX_A,
     CONF_EV_MIN_A,
     CONF_EV_OFF_OPTION,
@@ -156,11 +159,43 @@ class EvController(DataUpdateCoordinator[dict[str, Any]]):
             return st == c.get(CONF_EV_ON_OPTION)
         return st == "on"
 
+    def _cur_unit(self) -> str:
+        """Jednotka entity nabíjania: A (prúd), kW alebo W (výkon, napr. Huawei)."""
+        u = self.cfg.get(CONF_EV_CURRENT_UNIT) or "auto"
+        if u != "auto":
+            return u
+        st = self.hass.states.get(self.cfg.get(CONF_EV_CURRENT) or "")
+        um = ((st.attributes.get("unit_of_measurement") if st else "") or "").strip()
+        return "kW" if um.lower() == "kw" else ("W" if um == "W" else "A")
+
     def _current_a(self) -> float | None:
         try:
-            return float(self._state(CONF_EV_CURRENT))
+            v = float(self._state(CONF_EV_CURRENT))
         except (TypeError, ValueError):
             return None
+        wpa = self.ev_config().wpa
+        u = self._cur_unit()
+        return v * 1000 / wpa if u == "kW" else (v / wpa if u == "W" else v)
+
+    def _value_for(self, amps: int) -> float:
+        """Hodnota na zápis do entity nabíjania (A, kW alebo W), zarovnaná na krok a rozsah entity."""
+        u, wpa = self._cur_unit(), self.ev_config().wpa
+        v = amps * wpa / 1000 if u == "kW" else (amps * wpa if u == "W" else float(amps))
+        st = self.hass.states.get(self.cfg.get(CONF_EV_CURRENT) or "")
+        a = st.attributes if st else {}
+        step = float(a.get("step") or (0.1 if u == "kW" else 1))
+        v = round(round(v / step) * step, 3)
+        if a.get("min") is not None:
+            v = max(float(a["min"]), v)
+        if a.get("max") is not None:
+            v = min(float(a["max"]), v)
+        return int(v) if float(v).is_integer() else v
+
+    def _bat_charge_w(self) -> float | None:
+        kw = _kw(self.hass, self.cfg.get(CONF_BAT_POWER))
+        if kw is None:
+            return None
+        return -kw * 1000 if self.cfg.get(CONF_BAT_POWER_INVERT) else kw * 1000
 
     def _inputs(self) -> EvInputs:
         c, s = self.cfg, self.settings
@@ -206,6 +241,7 @@ class EvController(DataUpdateCoordinator[dict[str, Any]]):
             spot_limit=float(s[EV_SPOT_LIMIT]),
             is_on=self._is_on(),
             current_a=self._current_a(),
+            bat_charge_w=self._bat_charge_w(),
         )
 
     # ------------------------------------------------------------ výstup
@@ -219,8 +255,10 @@ class EvController(DataUpdateCoordinator[dict[str, Any]]):
             cur = self._current_a()
             if cur is not None and abs(cur - d.amps) >= 0.5:
                 domain = cur_id.split(".")[0]
-                await self.hass.services.async_call(domain, "set_value", {"entity_id": cur_id, "value": d.amps}, blocking=True)
-                done.append(f"prúd {d.amps} A")
+                val = self._value_for(d.amps)
+                await self.hass.services.async_call(domain, "set_value", {"entity_id": cur_id, "value": val}, blocking=True)
+                u = self._cur_unit()
+                done.append(f"prúd {d.amps} A" if u == "A" else f"výkon {val} {u} ({d.amps} A)")
 
         if sw_id and self._state(CONF_EV_SWITCH) not in (None, STATE_UNAVAILABLE, STATE_UNKNOWN) and self._is_on() != d.on:
             domain = sw_id.split(".")[0]
