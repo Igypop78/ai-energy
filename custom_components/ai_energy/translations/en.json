@@ -614,9 +614,9 @@
     "ev_current_unit": {
       "options": {
         "auto": "Auto from entity",
-        "A": "Current (A)",
-        "kW": "Power (kW)",
-        "W": "Power (W)"
+        "a": "Current (A)",
+        "kw": "Power (kW)",
+        "w": "Power (W)"
       }
     }
   }

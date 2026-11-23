@@ -161,9 +161,9 @@ class EvController(DataUpdateCoordinator[dict[str, Any]]):
 
     def _cur_unit(self) -> str:
         """Jednotka entity nabíjania: A (prúd), kW alebo W (výkon, napr. Huawei)."""
-        u = self.cfg.get(CONF_EV_CURRENT_UNIT) or "auto"
+        u = (self.cfg.get(CONF_EV_CURRENT_UNIT) or "auto").lower()
         if u != "auto":
-            return u
+            return {"a": "A", "kw": "kW", "w": "W"}.get(u, "A")
         st = self.hass.states.get(self.cfg.get(CONF_EV_CURRENT) or "")
         um = ((st.attributes.get("unit_of_measurement") if st else "") or "").strip()
         return "kW" if um.lower() == "kw" else ("W" if um == "W" else "A")

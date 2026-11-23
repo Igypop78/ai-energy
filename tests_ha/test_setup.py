@@ -99,9 +99,9 @@ async def test_ev_power_entity_in_kw(hass):
     with patch("custom_components.ai_energy.async_setup", return_value=True):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
-    await hass.services.async_call("number", "set_value", {"entity_id": "number.ai_energy_auto_prud", "value": 16}, blocking=True)
-    await hass.services.async_call("switch", "turn_on", {"entity_id": "switch.ai_energy_auto_riadenie"}, blocking=True)
-    await hass.services.async_call("select", "select_option", {"entity_id": "select.ai_energy_auto_rezim", "option": "now"}, blocking=True)
+    # number/switch služby sú tu nahradené – nastavenia auta zapíšeme priamo
+    s = entry.runtime_data.ev_settings
+    s["auto_prud"], s["auto_riadenie"], s["auto_rezim"] = 16, True, "now"
     await entry.runtime_data.ev.async_refresh()
     await hass.async_block_till_done()
     w = [c.data for c in calls if c.data.get("entity_id") == "number.wallbox_power"]

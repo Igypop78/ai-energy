@@ -614,9 +614,9 @@
     "ev_current_unit": {
       "options": {
         "auto": "Automaticky podľa entity",
-        "A": "Prúd (A)",
-        "kW": "Výkon (kW)",
-        "W": "Výkon (W)"
+        "a": "Prúd (A)",
+        "kw": "Výkon (kW)",
+        "w": "Výkon (W)"
       }
     }
   }

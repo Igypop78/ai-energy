@@ -321,7 +321,7 @@ def _s_auto(hass: HomeAssistant, c: dict[str, Any]) -> vol.Schema:
         {
             _req(CONF_EV_SWITCH, v(CONF_EV_SWITCH)): EV_SWITCH,
             _opt(CONF_EV_CURRENT, v(CONF_EV_CURRENT)): EV_CURRENT,
-            vol.Required(CONF_EV_CURRENT_UNIT, default=c.get(CONF_EV_CURRENT_UNIT, "auto")): _choice(CONF_EV_CURRENT_UNIT, ["auto", "A", "kW", "W"]),
+            vol.Required(CONF_EV_CURRENT_UNIT, default=c.get(CONF_EV_CURRENT_UNIT, "auto")): _choice(CONF_EV_CURRENT_UNIT, ["auto", "a", "kw", "w"]),
             vol.Required(CONF_EV_PHASES, default=str(c.get(CONF_EV_PHASES, DEFAULT_EV_PHASES))): PHASES(CONF_EV_PHASES),
             _opt(CONF_EV_PLUG, v(CONF_EV_PLUG)): EV_STATE,
             _opt(CONF_EV_CHARGING, v(CONF_EV_CHARGING)): EV_STATE,
