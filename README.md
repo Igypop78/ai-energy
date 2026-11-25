@@ -81,7 +81,19 @@ Tiež sa inštalujú s integráciou a **netreba ich nastavovať**:
   pod tlačidlom *Nastavenia* režim meniča (Auto / ručne na čas), min/max SOC, min. predajná cena, nabíjací výkon, korekcia FVE.
 - **Igy EV Action Card** – režim nabíjania auta, čas štartu, prúd, z čoho smie AI nabíjať a prepínač *Riadiť nabíjačku*.
 
-## Inštalácia cez HACS
+## Inštalácia
+
+### Home Assistant 2026.11 a novší (Marketplace)
+
+Od verzie 2026.11 je HACS zabudovaný priamo v Home Assistante ako **Marketplace** – na každom type inštalácie,
+aj v kontajneri. Samostatný HACS už netreba.
+
+1. **Nastavenia → Marketplace** (pri prvom otvorení potvrď upozornenie o komunitných doplnkoch).
+2. **Pridať z odkazu** (Add from link) → `https://github.com/Igypop78/ai-energy`.
+3. Nainštaluj **AI Energy** → **reštartuj Home Assistant**.
+4. **Nastavenia → Zariadenia a služby → Pridať integráciu → AI Energy**.
+
+### Home Assistant 2026.10 a starší (HACS)
 
 1. HACS → **⋮ → Vlastné repozitáre** (Custom repositories).
 2. URL: `https://github.com/Igypop78/ai-energy`, kategória **Integration** → Pridať.
